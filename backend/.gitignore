@@ -1,16 +1,14 @@
-# Binaries
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-server
-*.test
-*.out
-
-# Environment files
+# Environment files - NEVER commit these!
 .env
 .env.local
+.env.*.local
+**/.env
+**/!.env.example
+
+# Backend
+backend/server
+backend/*.test
+backend/*.out
 
 # IDE
 .idea/
@@ -24,4 +22,17 @@ server
 Thumbs.db
 
 # Dependencies
+node_modules/
 vendor/
+
+# Build outputs
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Logs
+*.log
+logs/

@@ -469,11 +469,11 @@ func (s *OrderService) expireOldOrders() {
 ### Staff Dashboard:
 - Simple password protection (environment variable)
 - No JWT/sessions needed (stateless auth)
-- Password in environment variable: `STAFF_PASSWORD=kasetfair2026`
+- Password in environment variable: `STAFF_PASSWORD=your_staff_password_here`
 - Check password on every request (HTTP Basic Auth or custom middleware)
 
 ### Admin Panel:
-- Separate admin password: `ADMIN_PASSWORD=barvidva2026`
+- Separate admin password: `ADMIN_PASSWORD=your_admin_password_here`
 - Log all menu changes (who, when, what) to database
 - Validate prices: 0.01 - 10000.00 THB
 - Prevent duplicate menu item names
@@ -620,10 +620,10 @@ services:
     ports:
       - "8080:8080"
     environment:
-      DATABASE_URL: postgres://barvidva:password@db:5432/barvidva?sslmode=disable
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://redis:6379
-      STAFF_PASSWORD: kasetfair2026
-      ADMIN_PASSWORD: barvidva2026
+      STAFF_PASSWORD: ${STAFF_PASSWORD}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
     depends_on:
       - db
       - redis
@@ -642,9 +642,9 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: barvidva
-      POSTGRES_USER: barvidva
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -667,9 +667,9 @@ volumes:
 # Backend
 DATABASE_URL=postgresql://user:pass@host/dbname
 REDIS_URL=redis://host:6379
-STAFF_PASSWORD=kasetfair2026
-ADMIN_PASSWORD=barvidva2026
-PROMPTPAY_NUMBER=0812345678  # For display purposes
+STAFF_PASSWORD=your_staff_password_here
+ADMIN_PASSWORD=your_admin_password_here
+PROMPTPAY_NUMBER=promptpay_number  # For display purposes
 PORT=8080
 
 # Frontend
@@ -726,8 +726,8 @@ fly postgres create --name barvidva-db
 # Attach database
 fly postgres attach barvidva-db
 
-# Set secrets
-fly secrets set STAFF_PASSWORD=kasetfair2026 ADMIN_PASSWORD=barvidva2026
+# Set secrets (use your actual secure passwords)
+fly secrets set STAFF_PASSWORD=your_staff_password_here ADMIN_PASSWORD=your_admin_password_here
 
 # Deploy
 fly deploy

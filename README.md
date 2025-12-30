@@ -15,6 +15,17 @@ A production-ready food ordering and queue management system for the Bar vidva b
 **Offline Support**: 🚧 Planned
 **Testing**: 🚧 Planned
 
+## 🔒 Security Setup Required
+
+**IMPORTANT**: Copy `.env.example` files and set secure passwords before running!
+```bash
+cp .env.example .env
+cp backend/.env.example backend/.env
+# Edit both files with secure passwords
+```
+
+See **[SECURITY.md](SECURITY.md)** for detailed security guidelines.
+
 ## Quick Start
 
 ### Prerequisites
