@@ -2,7 +2,7 @@
 
 ## PROJECT OVERVIEW
 
-You are building a **food ordering and queue management system** for the **Bar vidva booth** at **Kaset Fair 2025** - a 9-day event (dates TBD) with heavy foot traffic and unreliable internet connectivity.
+You are building a **food ordering and queue management system** for the **Bar vidva booth** at **Kaset Fair 2026** - a 9-day event (dates TBD) with heavy foot traffic and unreliable internet connectivity.
 
 **Student Context**: The developer is a software engineering student who already knows Go, TypeScript, and Docker. Prioritize production-grade patterns, type safety, and performance.
 
@@ -469,11 +469,11 @@ func (s *OrderService) expireOldOrders() {
 ### Staff Dashboard:
 - Simple password protection (environment variable)
 - No JWT/sessions needed (stateless auth)
-- Password in environment variable: `STAFF_PASSWORD=kasetfair2025`
+- Password in environment variable: `STAFF_PASSWORD=kasetfair2026`
 - Check password on every request (HTTP Basic Auth or custom middleware)
 
 ### Admin Panel:
-- Separate admin password: `ADMIN_PASSWORD=barvidva2025`
+- Separate admin password: `ADMIN_PASSWORD=barvidva2026`
 - Log all menu changes (who, when, what) to database
 - Validate prices: 0.01 - 10000.00 THB
 - Prevent duplicate menu item names
@@ -622,8 +622,8 @@ services:
     environment:
       DATABASE_URL: postgres://barvidva:password@db:5432/barvidva?sslmode=disable
       REDIS_URL: redis://redis:6379
-      STAFF_PASSWORD: kasetfair2025
-      ADMIN_PASSWORD: barvidva2025
+      STAFF_PASSWORD: kasetfair2026
+      ADMIN_PASSWORD: barvidva2026
     depends_on:
       - db
       - redis
@@ -667,8 +667,8 @@ volumes:
 # Backend
 DATABASE_URL=postgresql://user:pass@host/dbname
 REDIS_URL=redis://host:6379
-STAFF_PASSWORD=kasetfair2025
-ADMIN_PASSWORD=barvidva2025
+STAFF_PASSWORD=kasetfair2026
+ADMIN_PASSWORD=barvidva2026
 PROMPTPAY_NUMBER=0812345678  # For display purposes
 PORT=8080
 
@@ -727,7 +727,7 @@ fly postgres create --name barvidva-db
 fly postgres attach barvidva-db
 
 # Set secrets
-fly secrets set STAFF_PASSWORD=kasetfair2025 ADMIN_PASSWORD=barvidva2025
+fly secrets set STAFF_PASSWORD=kasetfair2026 ADMIN_PASSWORD=barvidva2026
 
 # Deploy
 fly deploy
