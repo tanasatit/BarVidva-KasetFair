@@ -6,7 +6,7 @@
 **/!.env.example
 
 # Backend
-backend/server
+/server
 backend/*.test
 backend/*.out
 
