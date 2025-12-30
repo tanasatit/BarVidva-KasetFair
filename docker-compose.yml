@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://barvidva:password@db:5432/barvidva?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      STAFF_PASSWORD: kasetfair2025
+      ADMIN_PASSWORD: barvidva2025
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend:/app
+  
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    environment:
+      VITE_API_URL: http://localhost:8080
+  
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: barvidva
+      POSTGRES_USER: barvidva
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+  
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
