@@ -1,0 +1,81 @@
+name: CI
+
+# When does this workflow run?
+on:
+  push:
+    branches: [main, phase1, phase2]  # Run on pushes to these branches
+  pull_request:
+    branches: [main]                   # Run on PRs targeting main
+
+jobs:
+  # Job 1: Run tests
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest            # Use GitHub's Ubuntu runner
+
+    steps:
+      # Step 1: Checkout code from repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Setup Go environment
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: backend/go.sum
+
+      # Step 3: Download dependencies
+      - name: Download dependencies
+        working-directory: ./backend
+        run: go mod download
+
+      # Step 4: Run tests with coverage
+      - name: Run tests
+        working-directory: ./backend
+        run: go test ./... -v -cover -coverprofile=coverage.out
+
+      # Step 5: Display coverage summary
+      - name: Coverage summary
+        working-directory: ./backend
+        run: go tool cover -func=coverage.out
+
+  # Job 2: Build check (can we compile the code?)
+  build:
+    name: Build Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: backend/go.sum
+
+      - name: Build
+        working-directory: ./backend
+        run: go build -o server ./cmd/server
+
+  # Job 3: Lint check (code quality)
+  lint:
+    name: Lint Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: backend/go.sum
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: latest
+          working-directory: ./backend
