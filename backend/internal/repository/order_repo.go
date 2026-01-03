@@ -14,6 +14,12 @@ type OrderRepository interface {
 	GetByID(ctx context.Context, id string) (*models.Order, error)
 	CheckDuplicateID(ctx context.Context, id string) (bool, error)
 	GetNextSequence(ctx context.Context, day int) (int, error)
+	GetByStatus(ctx context.Context, status models.OrderStatus) ([]models.Order, error)
+	GetByStatuses(ctx context.Context, statuses []models.OrderStatus) ([]models.Order, error)
+	UpdateStatus(ctx context.Context, id string, status models.OrderStatus) error
+	VerifyPayment(ctx context.Context, id string, queueNumber int) error
+	CompleteOrder(ctx context.Context, id string) error
+	GetNextQueueNumber(ctx context.Context, day int) (int, error)
 }
 
 type orderRepository struct {
@@ -127,4 +133,144 @@ func (r *orderRepository) GetByID(ctx context.Context, id string) (*models.Order
 	order.Items = items
 
 	return &order, nil
+}
+
+// GetByStatus retrieves all orders with a specific status
+func (r *orderRepository) GetByStatus(ctx context.Context, status models.OrderStatus) ([]models.Order, error) {
+	var orders []models.Order
+	query := `SELECT * FROM orders WHERE status = $1 ORDER BY created_at ASC`
+	err := r.db.SelectContext(ctx, &orders, query, status)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get orders by status: %w", err)
+	}
+
+	// Get items for each order
+	for i := range orders {
+		var items []models.OrderItem
+		itemsQuery := `SELECT * FROM order_items WHERE order_id = $1`
+		err = r.db.SelectContext(ctx, &items, itemsQuery, orders[i].ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get order items: %w", err)
+		}
+		orders[i].Items = items
+	}
+
+	return orders, nil
+}
+
+// GetByStatuses retrieves all orders with any of the specified statuses
+func (r *orderRepository) GetByStatuses(ctx context.Context, statuses []models.OrderStatus) ([]models.Order, error) {
+	if len(statuses) == 0 {
+		return []models.Order{}, nil
+	}
+
+	query, args, err := sqlx.In(`SELECT * FROM orders WHERE status IN (?) ORDER BY created_at ASC`, statuses)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build query: %w", err)
+	}
+	query = r.db.Rebind(query)
+
+	var orders []models.Order
+	err = r.db.SelectContext(ctx, &orders, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get orders by statuses: %w", err)
+	}
+
+	// Get items for each order
+	for i := range orders {
+		var items []models.OrderItem
+		itemsQuery := `SELECT * FROM order_items WHERE order_id = $1`
+		err = r.db.SelectContext(ctx, &items, itemsQuery, orders[i].ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get order items: %w", err)
+		}
+		orders[i].Items = items
+	}
+
+	return orders, nil
+}
+
+// UpdateStatus updates the status of an order
+func (r *orderRepository) UpdateStatus(ctx context.Context, id string, status models.OrderStatus) error {
+	query := `UPDATE orders SET status = $1 WHERE id = $2`
+	result, err := r.db.ExecContext(ctx, query, status, id)
+	if err != nil {
+		return fmt.Errorf("failed to update order status: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("order not found: %s", id)
+	}
+
+	return nil
+}
+
+// VerifyPayment marks an order as paid and assigns a queue number
+func (r *orderRepository) VerifyPayment(ctx context.Context, id string, queueNumber int) error {
+	query := `
+		UPDATE orders
+		SET status = $1, queue_number = $2, paid_at = NOW()
+		WHERE id = $3 AND status = $4
+	`
+	result, err := r.db.ExecContext(ctx, query, models.OrderStatusPaid, queueNumber, id, models.OrderStatusPendingPayment)
+	if err != nil {
+		return fmt.Errorf("failed to verify payment: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("order not found or not in pending payment status: %s", id)
+	}
+
+	return nil
+}
+
+// CompleteOrder marks an order as completed
+func (r *orderRepository) CompleteOrder(ctx context.Context, id string) error {
+	query := `
+		UPDATE orders
+		SET status = $1, completed_at = NOW()
+		WHERE id = $2 AND status = $3
+	`
+	result, err := r.db.ExecContext(ctx, query, models.OrderStatusCompleted, id, models.OrderStatusPaid)
+	if err != nil {
+		return fmt.Errorf("failed to complete order: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("order not found or not in paid status: %s", id)
+	}
+
+	return nil
+}
+
+// GetNextQueueNumber gets the next queue number for a given day
+func (r *orderRepository) GetNextQueueNumber(ctx context.Context, day int) (int, error) {
+	var maxQueue sql.NullInt64
+	query := `
+		SELECT MAX(queue_number)
+		FROM orders
+		WHERE day = $1 AND queue_number IS NOT NULL
+	`
+	err := r.db.GetContext(ctx, &maxQueue, query, day)
+	if err != nil && err != sql.ErrNoRows {
+		return 0, fmt.Errorf("failed to get next queue number: %w", err)
+	}
+
+	if !maxQueue.Valid {
+		return 1, nil
+	}
+
+	return int(maxQueue.Int64) + 1, nil
 }
