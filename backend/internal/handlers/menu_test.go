@@ -69,7 +69,9 @@ func TestMenuHandler_GetMenu(t *testing.T) {
 
 			var items []models.MenuItem
 			respBody, _ := io.ReadAll(resp.Body)
-			json.Unmarshal(respBody, &items)
+			if err := json.Unmarshal(respBody, &items); err != nil {
+				t.Fatalf("failed to unmarshal response: %v", err)
+			}
 			assert.Len(t, items, tt.wantCount)
 
 			mockService.AssertExpectations(t)

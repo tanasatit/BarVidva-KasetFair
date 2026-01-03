@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/tanasatit/barvidva-kasetfair/internal/models"
@@ -36,7 +37,11 @@ func (r *orderRepository) Create(ctx context.Context, order *models.Order) error
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			log.Println("rollback failed:", err)
+		}
+	}()
 
 	// Insert order
 	query := `

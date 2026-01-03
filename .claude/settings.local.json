@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(./server)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(go test:*)"
     ]
   },
   "allowedCommands": [

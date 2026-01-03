@@ -30,6 +30,12 @@ func main() {
 		logLevel = "info"
 	}
 
+	level, err := zerolog.ParseLevel(logLevel)
+	if err != nil {
+		level = zerolog.InfoLevel
+	}
+	zerolog.SetGlobalLevel(level)
+
 	// Initialize database
 	databaseURL := os.Getenv("DATABASE_URL")
 	db := initDatabase(databaseURL)
