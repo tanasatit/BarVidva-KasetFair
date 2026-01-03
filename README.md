@@ -1,30 +1,6 @@
-# Bar vidva - Kaset Fair 2025 Food Ordering System
+# Bar vidva - Kaset Fair 2026 Food Ordering System
 
-A production-ready food ordering and queue management system for the Bar vidva booth at Kaset Fair 2025. Built with Go + Fiber backend and React + TypeScript frontend, designed for offline-first operation in unreliable network conditions.
-
-## ✅ Current Status - Phase 1 Complete
-
-**Backend**: ✅ Fully implemented and tested
-- Go + Fiber REST API
-- PostgreSQL database with migrations
-- Order and menu management
-- Validation and error handling
-- Health monitoring
-
-**Frontend**: 🚧 Next phase
-**Offline Support**: 🚧 Planned
-**Testing**: 🚧 Planned
-
-## 🔒 Security Setup Required
-
-**IMPORTANT**: Copy `.env.example` files and set secure passwords before running!
-```bash
-cp .env.example .env
-cp backend/.env.example backend/.env
-# Edit both files with secure passwords
-```
-
-See **[SECURITY.md](SECURITY.md)** for detailed security guidelines.
+A food ordering and queue management system for the Bar vidva booth at Kaset Fair 2026. Built with Go + Fiber backend, designed for offline-first operation.
 
 ## Quick Start
 
@@ -32,113 +8,101 @@ See **[SECURITY.md](SECURITY.md)** for detailed security guidelines.
 - Go 1.21+
 - Docker & Docker Compose
 
-### 1. Start Database
+### 1. Setup Environment
+```bash
+cp .env.example .env
+cp backend/.env.example backend/.env
+# Edit both files with secure passwords
+```
+
+### 2. Start Database
 ```bash
 docker-compose up -d db
 ```
 
-### 2. Run Backend
+### 3. Run Backend
 ```bash
 cd backend
-go build -o server ./cmd/server
-./server
+go run ./cmd/server
 ```
 
 Server runs on `http://localhost:8080`
 
-### 3. Test Endpoints
-
-**Health Check:**
+### 4. Run Tests
 ```bash
-curl http://localhost:8080/health
-# Response: {"status":"healthy","database":"connected","timestamp":"..."}
-```
-
-**Get Menu:**
-```bash
-curl http://localhost:8080/api/v1/menu
-# Returns: French Fries S (฿40), M (฿60), L (฿80)
-```
-
-**Create Order:**
-```bash
-curl -X POST http://localhost:8080/api/v1/orders \
-  -H "Content-Type: application/json" \
-  -d '{"id":"1001","customer_name":"John Doe","day":1,"items":[{"menu_item_id":1,"name":"French Fries S","price":40,"quantity":2}]}'
-# Returns: Created order with ID 1001, total ฿80
+cd backend
+go test ./... -cover
 ```
 
 ## API Endpoints
 
+### Public (No Auth)
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/health` | Health check |
 | GET | `/api/v1/menu` | Get menu items |
 | GET | `/api/v1/menu?available=true` | Get available items only |
 | POST | `/api/v1/orders` | Create new order |
+| GET | `/api/v1/orders/:id` | Get order status |
+| GET | `/api/v1/queue` | View current queue |
 
-## Database Schema
+### Staff (Requires `STAFF_PASSWORD`)
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/staff/orders/pending` | Get pending payment orders |
+| PUT | `/api/v1/staff/orders/:id/verify` | Verify payment |
+| PUT | `/api/v1/staff/orders/:id/complete` | Complete order |
+| DELETE | `/api/v1/staff/orders/:id` | Cancel order |
 
-**Orders** (DXXX format ID)
-- Customer name, items, total, status
-- Day (1-9), queue number
-- Timestamps for created/paid/completed
+### Admin (Requires `ADMIN_PASSWORD`)
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/admin/menu` | Get all menu items |
+| POST | `/api/v1/admin/menu` | Create menu item |
+| PUT | `/api/v1/admin/menu/:id` | Update menu item |
+| DELETE | `/api/v1/admin/menu/:id` | Delete menu item |
 
-**Order Items**
-- Menu item reference with historical price
-- Quantity (1-10 validation)
-
-**Menu Items** (Seeded: French Fries S/M/L)
-- Name, price, category, availability
-- Timestamps
+### Authentication
+Staff and admin endpoints require Bearer token:
+```bash
+curl -H "Authorization: Bearer your_password_here" \
+  http://localhost:8080/api/v1/staff/orders/pending
+```
 
 ## Project Structure
 
 ```
 backend/
-├── cmd/server/main.go        # Entry point
+├── cmd/server/           # Entry point, middleware, routes
 ├── internal/
-│   ├── handlers/             # API handlers
-│   ├── models/               # Data models
-│   ├── repository/           # Database layer
-│   ├── service/              # Business logic
-│   └── utils/                # Utilities
-├── pkg/database/             # DB connection
-├── migrations/               # SQL schema
-└── .env                      # Configuration
+│   ├── handlers/         # HTTP request handlers
+│   ├── models/           # Data models
+│   ├── repository/       # Database layer
+│   ├── service/          # Business logic
+│   └── utils/            # Utilities (order ID, cache)
+├── pkg/database/         # DB connection
+└── migrations/           # SQL schema
 ```
 
-## Development Notes
+## Development
 
 ### Database Access
 ```bash
-docker exec barvidva-db psql -U barvidva -d barvidva
+docker exec -it barvidva-db psql -U barvidva -d barvidva
 ```
 
-### Host PostgreSQL Conflict
-If you have PostgreSQL on port 5432:
+### Stop Services
 ```bash
-brew services stop postgresql@14
+docker-compose down
 ```
-
-### Stopping Services
-```bash
-# Stop backend: Ctrl+C or kill process
-docker-compose down  # Stop database
-```
-
-## Next Steps
-
-1. Frontend development (React + TypeScript)
-2. Offline support (IndexedDB + Service Worker)
-3. Testing (unit + integration)
-4. Deployment (Fly.io)
 
 ## Documentation
 
-- `CLAUDE.md` - Complete project specifications
-- `INITIAL.md` - Original requirements
-- `PRPs/` - Detailed implementation plans
+| File | Purpose |
+|------|---------|
+| `CLAUDE.md` | Complete project specifications |
+| `backend/SECURITY.md` | Security guidelines |
+| `PRPs/` | Feature implementation plans |
 
 ## License
 
