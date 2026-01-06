@@ -1,0 +1,40 @@
+# Environment files - NEVER commit these!
+.env
+.env.test
+.env.local
+.env.*.local
+**/.env
+**/!.env.example
+**/!.env.test.example
+
+# Backend
+/server
+backend/*.test
+backend/*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Logs
+*.log
+logs/

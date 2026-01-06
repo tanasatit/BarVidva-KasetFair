@@ -1,5 +1,14 @@
 {
-    "allowedCommands": ["generate-prp", "execute-prp"],
-    "fileAccess": "full"
-  }
-  
+  "permissions": {
+    "allow": [
+      "Bash(./server)",
+      "Bash(cat:*)",
+      "Bash(go test:*)"
+    ]
+  },
+  "allowedCommands": [
+    "generate-prp",
+    "execute-prp"
+  ],
+  "fileAccess": "full"
+}

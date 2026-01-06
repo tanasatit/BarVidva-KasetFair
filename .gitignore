@@ -1,0 +1,12 @@
+# Env files
+.env
+
+# Docker
+postgres_data/
+
+# OS
+.DS_Store
+
+# Build artifacts
+dist/
+bin/
