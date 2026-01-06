@@ -1,8 +1,8 @@
 # Task: MVP Order Creation Flow
 
-**Status**: Phase 1 Complete ✅
+**Status**: Phase 1 Complete ✅ | Unit Tests Complete ✅
 **Priority**: P0 (Blocking for MVP)
-**Last Updated**: 2025-12-30
+**Last Updated**: 2026-01-07
 
 ---
 
@@ -218,8 +218,10 @@ menu_items:
 - [ ] Add offline status indicator
 - [ ] Test offline submission flow
 
-### 🚧 Phase 4: Testing (Pending)
-- [ ] Backend unit tests (Go)
+### 🚧 Phase 4: Testing (In Progress)
+- [x] Backend unit tests (Go) - handlers, services, utils
+- [x] Mock implementations for repositories and services
+- [x] CI/CD pipeline with GitHub Actions
 - [ ] Frontend component tests (Vitest)
 - [ ] Integration tests
 - [ ] Manual testing on 3G network
@@ -439,6 +441,91 @@ fly secrets set STAFF_PASSWORD=xxx ADMIN_PASSWORD=xxx
 
 ---
 
+## Additional Features (Post-MVP)
+
+Client-requested features to implement after core MVP is stable.
+
+### 1. PromptPay QR Payment Page
+
+**Description**: After customer confirms order, display a dedicated payment page with PromptPay QR code and total amount.
+
+**Requirements**:
+- Route: `/order/:id/payment` or modal after order confirmation
+- Display static PromptPay QR code (same image for all orders)
+- Show total amount prominently (large font)
+- Instructions in Thai and English
+- "Show slip to staff" reminder
+- Auto-redirect to order status page after 60 seconds (optional)
+
+**Implementation**:
+- Frontend: New PaymentPage component or PaymentModal
+- Store PromptPay QR image in `/frontend/public/images/promptpay-qr.png`
+- No backend changes needed (static QR)
+
+### 2. Admin Sales Dashboard
+
+**Description**: Dashboard showing sales statistics for admin management.
+
+**Requirements**:
+- Route: `/admin/dashboard` (protected by admin auth)
+- Display:
+  - Total sales per menu item (quantity sold)
+  - Total revenue (sum of all completed orders)
+  - Optional: Filter by day (1-9)
+- Real-time updates (polling every 30 seconds)
+
+**Implementation**:
+- Backend: New endpoints
+  - `GET /api/v1/admin/stats/sales` - Sales per menu item
+  - `GET /api/v1/admin/stats/revenue` - Total revenue
+- Frontend: AdminDashboard component with charts (optional: use Chart.js)
+- Database queries aggregate from `orders` and `order_items` tables
+
+**API Response Examples**:
+```json
+// GET /api/v1/admin/stats/sales
+{
+  "sales": [
+    {"menu_item_id": 1, "name": "French Fries S", "quantity_sold": 45, "revenue": 1800},
+    {"menu_item_id": 2, "name": "French Fries M", "quantity_sold": 32, "revenue": 1920},
+    {"menu_item_id": 3, "name": "French Fries L", "quantity_sold": 28, "revenue": 2240}
+  ],
+  "total_orders": 105,
+  "total_revenue": 5960
+}
+```
+
+### 3. Menu Images
+
+**Description**: Display images for menu items to help customers visualize products.
+
+**Requirements**:
+- Each menu item can have an optional image
+- Images stored in repository (not cloud) - suitable for 9-day event
+- Supported formats: JPG, PNG
+- Max file size: 500KB per image
+- Display size: 200x200px (thumbnail)
+
+**Implementation**:
+- Store images in `/frontend/public/images/menu/`
+- Naming convention: `{menu_item_id}.jpg` (e.g., `1.jpg`, `2.jpg`)
+- Add `image_url` field to MenuItem model (optional, nullable)
+- Frontend: Display image in MenuSelector component
+- Fallback: Show placeholder image if no image exists
+
+**Storage Decision**:
+Repository storage is acceptable for this project because:
+- Limited number of menu items (< 20 expected)
+- Short event duration (9 days)
+- Simpler deployment (no external image hosting needed)
+- Images can be optimized before adding to repo
+
+**Alternative** (if images become large):
+- Use Cloudinary or Imgur for free image hosting
+- Store only URLs in database
+
+---
+
 ## Known Limitations
 
 ### MVP Scope
@@ -450,7 +537,6 @@ fly secrets set STAFF_PASSWORD=xxx ADMIN_PASSWORD=xxx
 
 ### Technical Debt
 - Redis not yet implemented (in-memory cache only)
-- No automated tests yet (planned Phase 4)
 - Service Worker not configured (planned Phase 3)
 - No monitoring/alerting (rely on Fly.io built-in)
 
@@ -465,6 +551,6 @@ fly secrets set STAFF_PASSWORD=xxx ADMIN_PASSWORD=xxx
 
 ---
 
-**Document Version**: 2.0
-**Last Review**: 2025-12-30
-**Status**: Backend Phase 1 Complete, Frontend Pending
+**Document Version**: 2.1
+**Last Review**: 2026-01-07
+**Status**: Backend Phase 1 Complete, Unit Tests Complete, Frontend Pending
