@@ -13,6 +13,7 @@ interface StaffContextType {
 const StaffContext = createContext<StaffContextType | null>(null);
 
 const STORAGE_KEY = 'barvidva_staff_auth';
+const ADMIN_STORAGE_KEY = 'barvidva_admin_auth';
 
 interface StaffProviderProps {
   children: ReactNode;
@@ -23,10 +24,11 @@ export function StaffProvider({ children }: StaffProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Check existing session on mount
+  // Check existing session on mount - also check admin auth
   useEffect(() => {
     const checkAuth = async () => {
-      const storedPassword = sessionStorage.getItem(STORAGE_KEY);
+      // Check staff auth first, then admin auth (admin can access staff routes)
+      const storedPassword = sessionStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(ADMIN_STORAGE_KEY);
       if (storedPassword) {
         try {
           const isValid = await staffApi.testAuth(storedPassword);
@@ -75,7 +77,8 @@ export function StaffProvider({ children }: StaffProviderProps) {
   }, []);
 
   const getPassword = useCallback((): string | null => {
-    return sessionStorage.getItem(STORAGE_KEY);
+    // Return staff password, or admin password if available (admin can access staff routes)
+    return sessionStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(ADMIN_STORAGE_KEY);
   }, []);
 
   return (
