@@ -54,3 +54,41 @@ export interface ApiError {
 export interface CartItem extends OrderItem {
   menu_item_id: number;
 }
+
+// Admin stats types
+export interface DashboardStats {
+  total_orders_today: number;
+  total_revenue_today: number;
+  pending_orders: number;
+  queue_length: number;
+  completed_orders: number;
+  cancelled_orders: number;
+  avg_completion_time_mins: number;
+}
+
+export interface OrdersByHour {
+  hour: number;
+  count: number;
+  revenue: number;
+}
+
+export interface PopularItem {
+  menu_item_id: number;
+  name: string;
+  quantity_sold: number;
+  revenue: number;
+}
+
+export interface CreateMenuItemRequest {
+  name: string;
+  price: number;
+  category?: string;
+  available: boolean;
+}
+
+export interface UpdateMenuItemRequest {
+  name?: string;
+  price?: number;
+  category?: string;
+  available?: boolean;
+}
