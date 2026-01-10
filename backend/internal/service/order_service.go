@@ -18,6 +18,7 @@ type OrderService interface {
 	GetOrder(ctx context.Context, id string) (*models.Order, error)
 	GetPendingPayment(ctx context.Context) ([]models.Order, error)
 	GetQueue(ctx context.Context) ([]models.Order, error)
+	GetCompleted(ctx context.Context) ([]models.Order, error)
 	VerifyPayment(ctx context.Context, id string) (*models.Order, error)
 	CompleteOrder(ctx context.Context, id string) (*models.Order, error)
 	CancelOrder(ctx context.Context, id string) error
@@ -180,6 +181,19 @@ func (s *orderService) GetQueue(ctx context.Context) ([]models.Order, error) {
 	orders, err := s.orderRepo.GetByStatus(ctx, models.OrderStatusPaid)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get queue: %w", err)
+	}
+
+	return orders, nil
+}
+
+// GetCompleted retrieves all completed orders (today only for performance)
+func (s *orderService) GetCompleted(ctx context.Context) ([]models.Order, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	orders, err := s.orderRepo.GetByStatus(ctx, models.OrderStatusCompleted)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get completed orders: %w", err)
 	}
 
 	return orders, nil
