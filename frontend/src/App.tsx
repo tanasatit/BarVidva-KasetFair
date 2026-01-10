@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { CustomerOrder } from '@/pages/CustomerOrder';
 import { StaffDashboard } from '@/pages/StaffDashboard';
+import { AdminDashboard } from '@/pages/AdminDashboard';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,6 +22,7 @@ function App() {
           <Route path="/" element={<CustomerOrder />} />
           <Route path="/order" element={<CustomerOrder />} />
           <Route path="/staff" element={<StaffDashboard />} />
+          <Route path="/admin" element={<AdminDashboard />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
