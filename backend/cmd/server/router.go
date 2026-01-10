@@ -49,6 +49,7 @@ func setupRoutes(app *fiber.App, db *sqlx.DB, orderHandler *handlers.OrderHandle
 
 	// Staff order management
 	staff.Get("/orders/pending", orderHandler.GetPendingPayment)
+	staff.Get("/orders/completed", orderHandler.GetCompletedOrders)
 	staff.Put("/orders/:id/verify", orderHandler.VerifyPayment)
 	staff.Put("/orders/:id/complete", orderHandler.CompleteOrder)
 	staff.Delete("/orders/:id", orderHandler.CancelOrder)
