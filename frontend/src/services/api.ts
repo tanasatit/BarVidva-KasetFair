@@ -1,5 +1,15 @@
 import axios, { AxiosError } from 'axios';
-import type { MenuItem, Order, CreateOrderRequest, ApiError } from '@/types/api';
+import type {
+  MenuItem,
+  Order,
+  CreateOrderRequest,
+  ApiError,
+  DashboardStats,
+  OrdersByHour,
+  PopularItem,
+  CreateMenuItemRequest,
+  UpdateMenuItemRequest,
+} from '@/types/api';
 
 const api = axios.create({
   baseURL: '/api/v1',
@@ -112,6 +122,80 @@ export const staffApi = {
     } catch {
       return false;
     }
+  },
+};
+
+// Admin API (requires admin authentication)
+export const adminApi = {
+  // Auth test
+  testAuth: async (password: string): Promise<boolean> => {
+    try {
+      const authApi = createAuthApi(password);
+      await authApi.get('/admin/menu');
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  // Dashboard stats
+  getStats: async (password: string): Promise<DashboardStats> => {
+    const authApi = createAuthApi(password);
+    const { data } = await authApi.get<DashboardStats>('/admin/stats');
+    return data;
+  },
+
+  getOrdersByHour: async (password: string): Promise<OrdersByHour[]> => {
+    const authApi = createAuthApi(password);
+    const { data } = await authApi.get<OrdersByHour[]>('/admin/stats/orders-by-hour');
+    return data;
+  },
+
+  getPopularItems: async (password: string): Promise<PopularItem[]> => {
+    const authApi = createAuthApi(password);
+    const { data } = await authApi.get<PopularItem[]>('/admin/stats/popular-items');
+    return data;
+  },
+
+  // Menu management
+  getMenu: async (password: string): Promise<MenuItem[]> => {
+    const authApi = createAuthApi(password);
+    const { data } = await authApi.get<MenuItem[]>('/admin/menu');
+    return data;
+  },
+
+  getMenuItem: async (password: string, id: number): Promise<MenuItem> => {
+    const authApi = createAuthApi(password);
+    const { data } = await authApi.get<MenuItem>(`/admin/menu/${id}`);
+    return data;
+  },
+
+  createMenuItem: async (password: string, item: CreateMenuItemRequest): Promise<MenuItem> => {
+    const authApi = createAuthApi(password);
+    const { data } = await authApi.post<MenuItem>('/admin/menu', item);
+    return data;
+  },
+
+  updateMenuItem: async (
+    password: string,
+    id: number,
+    item: UpdateMenuItemRequest
+  ): Promise<MenuItem> => {
+    const authApi = createAuthApi(password);
+    const { data } = await authApi.put<MenuItem>(`/admin/menu/${id}`, item);
+    return data;
+  },
+
+  deleteMenuItem: async (password: string, id: number): Promise<void> => {
+    const authApi = createAuthApi(password);
+    await authApi.delete(`/admin/menu/${id}`);
+  },
+
+  // Orders (admin can see all orders)
+  getAllOrders: async (password: string): Promise<Order[]> => {
+    const authApi = createAuthApi(password);
+    const { data } = await authApi.get<Order[]>('/admin/orders');
+    return data;
   },
 };
 
