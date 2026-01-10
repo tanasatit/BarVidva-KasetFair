@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -29,7 +30,9 @@ func setupMiddleware(app *fiber.App) {
 
 // StaffAuth creates middleware that validates staff password.
 // Uses Bearer token authentication: Authorization: Bearer <password>
+// Also accepts admin password for convenience (admin can access staff routes)
 func StaffAuth(password string) fiber.Handler {
+	adminPassword := os.Getenv("ADMIN_PASSWORD")
 	return func(c *fiber.Ctx) error {
 		auth := c.Get("Authorization")
 
@@ -42,7 +45,8 @@ func StaffAuth(password string) fiber.Handler {
 		}
 
 		token := strings.TrimPrefix(auth, "Bearer ")
-		if token != password {
+		// Accept both staff password and admin password
+		if token != password && token != adminPassword {
 			return c.Status(401).JSON(fiber.Map{
 				"error": "Invalid credentials",
 				"code":  "UNAUTHORIZED",
