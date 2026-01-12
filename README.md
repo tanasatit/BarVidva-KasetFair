@@ -69,6 +69,25 @@ curl -H "Authorization: Bearer your_password_here" \
   http://localhost:8080/api/v1/staff/orders/pending
 ```
 
+## Frontend Pages
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/` | Customer Order | Menu selection and order placement |
+| `/queue` | Queue Tracker | Search and track order status |
+| `/queue/:orderId` | Queue Tracker | Direct link to track specific order |
+| `/staff` | Staff Dashboard | Verify payments, manage queue, complete orders |
+| `/admin` | Admin Dashboard | Menu management, analytics, popular items |
+
+### Run Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend runs on `http://localhost:3000`
+
 ## Project Structure
 
 ```
@@ -82,6 +101,16 @@ backend/
 │   └── utils/            # Utilities (order ID, cache)
 ├── pkg/database/         # DB connection
 └── migrations/           # SQL schema
+
+frontend/
+├── src/
+│   ├── pages/            # React pages (CustomerOrder, StaffDashboard, AdminDashboard, QueueTracker)
+│   ├── components/       # Reusable UI components
+│   ├── hooks/            # Custom React hooks
+│   ├── services/         # API client
+│   ├── types/            # TypeScript types
+│   └── utils/            # Utility functions
+└── public/               # Static assets
 ```
 
 ## Development
