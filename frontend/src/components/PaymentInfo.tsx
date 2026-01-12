@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import type { Order } from '@/types/api';
 import { formatPrice } from '@/utils/orderUtils';
 
@@ -78,6 +79,13 @@ export function PaymentInfo({ order }: PaymentInfoProps) {
         <p>กรุณาชำระเงินภายใน 10 นาที</p>
         <p>มิฉะนั้นออเดอร์จะถูกยกเลิกอัตโนมัติ</p>
       </div>
+
+      <Link
+        to={`/queue/${order.id}`}
+        className="block w-full px-4 py-3 bg-orange-500 text-white font-medium rounded-lg text-center hover:bg-orange-600 active:bg-orange-700 transition-colors"
+      >
+        ติดตามสถานะออเดอร์
+      </Link>
     </div>
   );
 }
