@@ -55,6 +55,7 @@ func main() {
 	// Initialize handlers
 	orderHandler := handlers.NewOrderHandler(orderService)
 	menuHandler := handlers.NewMenuHandler(menuService)
+	statsHandler := handlers.NewStatsHandler(db)
 
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
@@ -65,7 +66,7 @@ func main() {
 	setupMiddleware(app)
 
 	// Setup routes
-	setupRoutes(app, db, orderHandler, menuHandler)
+	setupRoutes(app, db, orderHandler, menuHandler, statsHandler)
 
 	// Get port from environment
 	port := os.Getenv("PORT")
