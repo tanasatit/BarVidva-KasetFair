@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminProvider, useAdminAuth } from '@/context/AdminContext';
 import { StaffProvider } from '@/context/StaffContext';
@@ -9,13 +9,16 @@ import {
   useUpdateMenuItem,
   useDeleteMenuItem,
   usePopularItems,
+  useAdminStats,
+  useOrdersByHour,
+  useDailyBreakdown,
 } from '@/hooks/useAdmin';
 import {
   usePendingOrders,
   useQueueOrders,
   useCompletedOrders,
 } from '@/hooks/useStaff';
-import type { MenuItem, CreateMenuItemRequest, PopularItem } from '@/types/api';
+import type { MenuItem, CreateMenuItemRequest, PopularItem, DateRange, DailyBreakdown } from '@/types/api';
 import { formatPrice } from '@/utils/orderUtils';
 
 type TabType = 'overview' | 'menu' | 'orders';
@@ -133,47 +136,161 @@ function TabButton({ active, onClick, icon, label }: TabButtonProps) {
   );
 }
 
+// Event dates: Jan 30 - Feb 7, 2026
+const EVENT_START = '2026-01-30';
+const EVENT_END = '2026-02-07';
+
+type DatePreset = 'today' | 'yesterday' | 'last7' | 'allEvent' | 'custom';
+
+function getToday(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+function getYesterday(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split('T')[0];
+}
+
+function getLast7Days(): { start: string; end: string } {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - 6);
+  return {
+    start: start.toISOString().split('T')[0],
+    end: end.toISOString().split('T')[0],
+  };
+}
+
+function formatDateThai(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+}
+
 function OverviewTab() {
+  const [preset, setPreset] = useState<DatePreset>('today');
+  const [customStart, setCustomStart] = useState(getToday());
+  const [customEnd, setCustomEnd] = useState(getToday());
+
+  const dateRange: DateRange | undefined = useMemo(() => {
+    switch (preset) {
+      case 'today':
+        return { start_date: getToday(), end_date: getToday() };
+      case 'yesterday':
+        return { start_date: getYesterday(), end_date: getYesterday() };
+      case 'last7':
+        const last7 = getLast7Days();
+        return { start_date: last7.start, end_date: last7.end };
+      case 'allEvent':
+        return { start_date: EVENT_START, end_date: EVENT_END };
+      case 'custom':
+        return { start_date: customStart, end_date: customEnd };
+    }
+  }, [preset, customStart, customEnd]);
+
+  const isMultiDay = dateRange && dateRange.start_date !== dateRange.end_date;
+
+  // Fetch data with date range
+  const { data: stats, isLoading: statsLoading } = useAdminStats(dateRange);
+  const { data: ordersByHourData } = useOrdersByHour(dateRange);
+  const { data: popularItems } = usePopularItems(dateRange);
+  const { data: dailyBreakdown } = useDailyBreakdown(dateRange);
+
+  // For recent activity, always use today's data
   const { data: pendingOrders } = usePendingOrders();
   const { data: queueOrders } = useQueueOrders();
   const { data: completedOrders } = useCompletedOrders();
-  const { data: popularItems } = usePopularItems();
 
-  // Calculate stats from real data
-  const totalOrders = (pendingOrders?.length || 0) + (queueOrders?.length || 0) + (completedOrders?.length || 0);
-  const totalRevenue = [...(pendingOrders || []), ...(queueOrders || []), ...(completedOrders || [])]
-    .reduce((sum, order) => sum + order.total_amount, 0);
+  const totalOrders = stats?.total_orders || 0;
+  const totalRevenue = stats?.total_revenue || 0;
   const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-  // Orders by hour
-  const ordersByHour = getOrdersByHour([...(pendingOrders || []), ...(queueOrders || []), ...(completedOrders || [])]);
+  // Transform orders by hour data
+  const ordersByHour = useMemo(() => {
+    const hours = Array.from({ length: 13 }, (_, i) => ({ hour: i + 9, count: 0 }));
+    ordersByHourData?.forEach(item => {
+      const hourData = hours.find(h => h.hour === item.hour);
+      if (hourData) hourData.count = item.count;
+    });
+    return hours;
+  }, [ordersByHourData]);
+
+  // Date range label
+  const dateLabel = useMemo(() => {
+    if (!dateRange) return 'วันนี้';
+    if (dateRange.start_date === dateRange.end_date) {
+      return preset === 'today' ? 'วันนี้' : formatDateThai(dateRange.start_date);
+    }
+    return `${formatDateThai(dateRange.start_date)} - ${formatDateThai(dateRange.end_date)}`;
+  }, [dateRange, preset]);
 
   return (
     <div className="space-y-6">
+      {/* Date Range Picker */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm text-gray-500 font-medium">ช่วงเวลา:</span>
+          <div className="flex flex-wrap gap-2">
+            <PresetButton active={preset === 'today'} onClick={() => setPreset('today')}>วันนี้</PresetButton>
+            <PresetButton active={preset === 'yesterday'} onClick={() => setPreset('yesterday')}>เมื่อวาน</PresetButton>
+            <PresetButton active={preset === 'last7'} onClick={() => setPreset('last7')}>7 วันล่าสุด</PresetButton>
+            <PresetButton active={preset === 'allEvent'} onClick={() => setPreset('allEvent')}>ทั้งงาน</PresetButton>
+            <PresetButton active={preset === 'custom'} onClick={() => setPreset('custom')}>กำหนดเอง</PresetButton>
+          </div>
+          {preset === 'custom' && (
+            <div className="flex items-center gap-2 ml-auto">
+              <input
+                type="date"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+                className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
+              <span className="text-gray-400">-</span>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="ออเดอร์วันนี้"
-          value={totalOrders.toString()}
+          title={`ออเดอร์ ${preset === 'today' ? 'วันนี้' : ''}`}
+          value={statsLoading ? '...' : totalOrders.toString()}
+          subtitle={preset !== 'today' ? dateLabel : undefined}
           icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>}
         />
         <StatCard
-          title="รายได้วันนี้"
-          value={formatPrice(totalRevenue)}
+          title={`รายได้ ${preset === 'today' ? 'วันนี้' : ''}`}
+          value={statsLoading ? '...' : formatPrice(totalRevenue)}
+          subtitle={preset !== 'today' ? dateLabel : undefined}
           icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
           highlight
         />
         <StatCard
           title="รอชำระเงิน"
-          value={(pendingOrders?.length || 0).toString()}
+          value={statsLoading ? '...' : (stats?.pending_orders || 0).toString()}
           icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
         />
         <StatCard
           title="ในคิว"
-          value={(queueOrders?.length || 0).toString()}
+          value={statsLoading ? '...' : (stats?.queue_length || 0).toString()}
           icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>}
         />
       </div>
+
+      {/* Daily Breakdown Chart - Only show for multi-day ranges */}
+      {isMultiDay && dailyBreakdown && dailyBreakdown.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">เปรียบเทียบรายวัน</h3>
+          <DailyBreakdownChart data={dailyBreakdown} />
+        </div>
+      )}
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-2 gap-6">
@@ -187,14 +304,20 @@ function OverviewTab() {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">สรุปภาพรวม</h3>
           <div className="space-y-4">
-            <QuickStatRow label="เสร็จสิ้นแล้ว" value={completedOrders?.length || 0} total={totalOrders} color="green" />
-            <QuickStatRow label="กำลังทำ" value={queueOrders?.length || 0} total={totalOrders} color="blue" />
-            <QuickStatRow label="รอชำระ" value={pendingOrders?.length || 0} total={totalOrders} color="amber" />
+            <QuickStatRow label="เสร็จสิ้นแล้ว" value={stats?.completed_orders || 0} total={totalOrders} color="green" />
+            <QuickStatRow label="กำลังทำ" value={stats?.queue_length || 0} total={totalOrders} color="blue" />
+            <QuickStatRow label="รอชำระ" value={stats?.pending_orders || 0} total={totalOrders} color="amber" />
             <div className="pt-4 border-t border-gray-200">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">ยอดเฉลี่ยต่อออเดอร์</span>
                 <span className="text-gray-900 font-medium">{formatPrice(avgOrderValue)}</span>
               </div>
+              {stats?.avg_completion_time_mins !== undefined && stats.avg_completion_time_mins > 0 && (
+                <div className="flex justify-between text-sm mt-2">
+                  <span className="text-gray-500">เวลาเฉลี่ยในการทำ</span>
+                  <span className="text-gray-900 font-medium">{Math.round(stats.avg_completion_time_mins)} นาที</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -202,13 +325,13 @@ function OverviewTab() {
 
       {/* Popular Items Section */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">เมนูขายดี</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">เมนูขายดี {preset !== 'today' && <span className="text-sm font-normal text-gray-500">({dateLabel})</span>}</h3>
         <PopularItemsList items={popularItems || []} />
       </div>
 
-      {/* Recent Activity */}
+      {/* Recent Activity - Always shows today */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">กิจกรรมล่าสุด</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">กิจกรรมล่าสุด <span className="text-sm font-normal text-gray-500">(วันนี้)</span></h3>
         <RecentActivity
           pending={pendingOrders || []}
           queue={queueOrders || []}
@@ -219,14 +342,84 @@ function OverviewTab() {
   );
 }
 
+function PresetButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
+        active
+          ? 'bg-orange-500 text-white'
+          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function DailyBreakdownChart({ data }: { data: DailyBreakdown[] }) {
+  const maxOrders = Math.max(...data.map(d => d.total_orders), 1);
+  const maxRevenue = Math.max(...data.map(d => d.revenue), 1);
+
+  return (
+    <div className="space-y-4">
+      {/* Legend */}
+      <div className="flex items-center gap-6 text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 bg-orange-500 rounded" />
+          <span className="text-gray-600">ออเดอร์</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 bg-green-500 rounded" />
+          <span className="text-gray-600">รายได้</span>
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="space-y-3">
+        {data.map((day) => (
+          <div key={day.date} className="flex items-center gap-4">
+            <div className="w-20 flex-shrink-0 text-sm text-gray-600">
+              {formatDateThai(day.date)}
+            </div>
+            <div className="flex-1 space-y-1">
+              {/* Orders bar */}
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-orange-500 rounded-full transition-all duration-500"
+                    style={{ width: `${(day.total_orders / maxOrders) * 100}%` }}
+                  />
+                </div>
+                <span className="w-12 text-xs text-gray-500 text-right">{day.total_orders}</span>
+              </div>
+              {/* Revenue bar */}
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-500 rounded-full transition-all duration-500"
+                    style={{ width: `${(day.revenue / maxRevenue) * 100}%` }}
+                  />
+                </div>
+                <span className="w-12 text-xs text-gray-500 text-right">{formatPrice(day.revenue)}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface StatCardProps {
   title: string;
   value: string;
+  subtitle?: string;
   icon: React.ReactNode;
   highlight?: boolean;
 }
 
-function StatCard({ title, value, icon, highlight }: StatCardProps) {
+function StatCard({ title, value, subtitle, icon, highlight }: StatCardProps) {
   return (
     <div className={`rounded-xl border p-5 ${highlight ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'}`}>
       <div className="flex items-center justify-between mb-3">
@@ -234,6 +427,7 @@ function StatCard({ title, value, icon, highlight }: StatCardProps) {
         <div className={highlight ? 'text-orange-500' : 'text-gray-400'}>{icon}</div>
       </div>
       <p className={`text-2xl font-bold ${highlight ? 'text-orange-600' : 'text-gray-900'}`}>{value}</p>
+      {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
     </div>
   );
 }
@@ -709,19 +903,6 @@ function LoadingState() {
       </div>
     </div>
   );
-}
-
-function getOrdersByHour(orders: any[]): { hour: number; count: number }[] {
-  // Generate hours 9-21 (typical operating hours)
-  const hours = Array.from({ length: 13 }, (_, i) => ({ hour: i + 9, count: 0 }));
-
-  orders.forEach(order => {
-    const hour = new Date(order.created_at).getHours();
-    const hourData = hours.find(h => h.hour === hour);
-    if (hourData) hourData.count++;
-  });
-
-  return hours;
 }
 
 export function AdminDashboard() {

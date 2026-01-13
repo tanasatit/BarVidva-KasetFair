@@ -55,15 +55,23 @@ export interface CartItem extends OrderItem {
   menu_item_id: number;
 }
 
+// Date range for stats queries
+export interface DateRange {
+  start_date: string; // YYYY-MM-DD
+  end_date: string;   // YYYY-MM-DD
+}
+
 // Admin stats types
 export interface DashboardStats {
-  total_orders_today: number;
-  total_revenue_today: number;
+  total_orders: number;
+  total_revenue: number;
   pending_orders: number;
   queue_length: number;
   completed_orders: number;
   cancelled_orders: number;
   avg_completion_time_mins: number;
+  start_date: string;
+  end_date: string;
 }
 
 export interface OrdersByHour {
@@ -77,6 +85,15 @@ export interface PopularItem {
   name: string;
   quantity_sold: number;
   revenue: number;
+}
+
+export interface DailyBreakdown {
+  date: string;
+  total_orders: number;
+  revenue: number;
+  completed: number;
+  cancelled: number;
+  avg_completion_mins: number;
 }
 
 export interface CreateMenuItemRequest {

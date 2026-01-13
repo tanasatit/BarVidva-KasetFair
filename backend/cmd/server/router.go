@@ -62,6 +62,7 @@ func setupRoutes(app *fiber.App, db *sqlx.DB, orderHandler *handlers.OrderHandle
 	admin.Get("/stats", statsHandler.GetStats)
 	admin.Get("/stats/orders-by-hour", statsHandler.GetOrdersByHour)
 	admin.Get("/stats/popular-items", statsHandler.GetPopularItems)
+	admin.Get("/stats/daily-breakdown", statsHandler.GetDailyBreakdown)
 
 	// Admin menu management
 	admin.Get("/menu", menuHandler.GetMenu)

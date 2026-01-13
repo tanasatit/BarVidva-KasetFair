@@ -1,60 +1,77 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/services/api';
 import { useAdminAuth } from '@/context/AdminContext';
-import type { CreateMenuItemRequest, UpdateMenuItemRequest } from '@/types/api';
+import type { CreateMenuItemRequest, UpdateMenuItemRequest, DateRange } from '@/types/api';
 
 // Query keys for admin operations
 export const adminKeys = {
   all: ['admin'] as const,
-  stats: () => [...adminKeys.all, 'stats'] as const,
-  ordersByHour: () => [...adminKeys.all, 'orders-by-hour'] as const,
-  popularItems: () => [...adminKeys.all, 'popular-items'] as const,
+  stats: (dateRange?: DateRange) => [...adminKeys.all, 'stats', dateRange] as const,
+  ordersByHour: (dateRange?: DateRange) => [...adminKeys.all, 'orders-by-hour', dateRange] as const,
+  popularItems: (dateRange?: DateRange) => [...adminKeys.all, 'popular-items', dateRange] as const,
+  dailyBreakdown: (dateRange?: DateRange) => [...adminKeys.all, 'daily-breakdown', dateRange] as const,
   menu: () => [...adminKeys.all, 'menu'] as const,
   menuItem: (id: number) => [...adminKeys.all, 'menu', id] as const,
   orders: () => [...adminKeys.all, 'orders'] as const,
 };
 
-export function useAdminStats() {
+export function useAdminStats(dateRange?: DateRange) {
   const { getPassword, isAuthenticated } = useAdminAuth();
 
   return useQuery({
-    queryKey: adminKeys.stats(),
+    queryKey: adminKeys.stats(dateRange),
     queryFn: () => {
       const password = getPassword();
       if (!password) throw new Error('Not authenticated');
-      return adminApi.getStats(password);
+      return adminApi.getStats(password, dateRange);
     },
     enabled: isAuthenticated,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
     retry: 2,
   });
 }
 
-export function useOrdersByHour() {
+export function useOrdersByHour(dateRange?: DateRange) {
   const { getPassword, isAuthenticated } = useAdminAuth();
 
   return useQuery({
-    queryKey: adminKeys.ordersByHour(),
+    queryKey: adminKeys.ordersByHour(dateRange),
     queryFn: () => {
       const password = getPassword();
       if (!password) throw new Error('Not authenticated');
-      return adminApi.getOrdersByHour(password);
+      return adminApi.getOrdersByHour(password, dateRange);
     },
     enabled: isAuthenticated,
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 60000,
     retry: 2,
   });
 }
 
-export function usePopularItems() {
+export function usePopularItems(dateRange?: DateRange) {
   const { getPassword, isAuthenticated } = useAdminAuth();
 
   return useQuery({
-    queryKey: adminKeys.popularItems(),
+    queryKey: adminKeys.popularItems(dateRange),
     queryFn: () => {
       const password = getPassword();
       if (!password) throw new Error('Not authenticated');
-      return adminApi.getPopularItems(password);
+      return adminApi.getPopularItems(password, dateRange);
+    },
+    enabled: isAuthenticated,
+    refetchInterval: 60000,
+    retry: 2,
+  });
+}
+
+export function useDailyBreakdown(dateRange?: DateRange) {
+  const { getPassword, isAuthenticated } = useAdminAuth();
+
+  return useQuery({
+    queryKey: adminKeys.dailyBreakdown(dateRange),
+    queryFn: () => {
+      const password = getPassword();
+      if (!password) throw new Error('Not authenticated');
+      return adminApi.getDailyBreakdown(password, dateRange);
     },
     enabled: isAuthenticated,
     refetchInterval: 60000,
@@ -89,7 +106,6 @@ export function useCreateMenuItem() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminKeys.menu() });
-      // Also invalidate public menu
       queryClient.invalidateQueries({ queryKey: ['menu'] });
     },
   });

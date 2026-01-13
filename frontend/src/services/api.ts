@@ -7,6 +7,8 @@ import type {
   DashboardStats,
   OrdersByHour,
   PopularItem,
+  DailyBreakdown,
+  DateRange,
   CreateMenuItemRequest,
   UpdateMenuItemRequest,
 } from '@/types/api';
@@ -139,21 +141,35 @@ export const adminApi = {
   },
 
   // Dashboard stats
-  getStats: async (password: string): Promise<DashboardStats> => {
+  getStats: async (password: string, dateRange?: DateRange): Promise<DashboardStats> => {
     const authApi = createAuthApi(password);
-    const { data } = await authApi.get<DashboardStats>('/admin/stats');
+    const { data } = await authApi.get<DashboardStats>('/admin/stats', {
+      params: dateRange,
+    });
     return data;
   },
 
-  getOrdersByHour: async (password: string): Promise<OrdersByHour[]> => {
+  getOrdersByHour: async (password: string, dateRange?: DateRange): Promise<OrdersByHour[]> => {
     const authApi = createAuthApi(password);
-    const { data } = await authApi.get<OrdersByHour[]>('/admin/stats/orders-by-hour');
+    const { data } = await authApi.get<OrdersByHour[]>('/admin/stats/orders-by-hour', {
+      params: dateRange,
+    });
     return data;
   },
 
-  getPopularItems: async (password: string): Promise<PopularItem[]> => {
+  getPopularItems: async (password: string, dateRange?: DateRange): Promise<PopularItem[]> => {
     const authApi = createAuthApi(password);
-    const { data } = await authApi.get<PopularItem[]>('/admin/stats/popular-items');
+    const { data } = await authApi.get<PopularItem[]>('/admin/stats/popular-items', {
+      params: dateRange,
+    });
+    return data;
+  },
+
+  getDailyBreakdown: async (password: string, dateRange?: DateRange): Promise<DailyBreakdown[]> => {
+    const authApi = createAuthApi(password);
+    const { data } = await authApi.get<DailyBreakdown[]>('/admin/stats/daily-breakdown', {
+      params: dateRange,
+    });
     return data;
   },
 

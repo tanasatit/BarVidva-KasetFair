@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jmoiron/sqlx"
@@ -16,11 +17,22 @@ func NewStatsHandler(db *sqlx.DB) *StatsHandler {
 	return &StatsHandler{db: db}
 }
 
-// GetStats handles GET /api/v1/admin/stats
+// parseDateRange extracts start_date and end_date from query params
+// Defaults to today if not provided
+func parseDateRange(c *fiber.Ctx) (startDate, endDate string) {
+	today := time.Now().Format("2006-01-02")
+	startDate = c.Query("start_date", today)
+	endDate = c.Query("end_date", today)
+	return startDate, endDate
+}
+
+// GetStats handles GET /api/v1/admin/stats?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
 func (h *StatsHandler) GetStats(c *fiber.Ctx) error {
+	startDate, endDate := parseDateRange(c)
+
 	var stats struct {
-		TotalOrdersToday      int     `db:"total_orders_today"`
-		TotalRevenueToday     float64 `db:"total_revenue_today"`
+		TotalOrders           int     `db:"total_orders"`
+		TotalRevenue          float64 `db:"total_revenue"`
 		PendingOrders         int     `db:"pending_orders"`
 		QueueLength           int     `db:"queue_length"`
 		CompletedOrders       int     `db:"completed_orders"`
@@ -30,19 +42,19 @@ func (h *StatsHandler) GetStats(c *fiber.Ctx) error {
 
 	query := `
 		SELECT
-			COUNT(*) FILTER (WHERE created_at::date = CURRENT_DATE) AS total_orders_today,
-			COALESCE(SUM(total_amount) FILTER (WHERE created_at::date = CURRENT_DATE AND status IN ('PAID', 'COMPLETED')), 0) AS total_revenue_today,
-			COUNT(*) FILTER (WHERE status = 'PENDING_PAYMENT') AS pending_orders,
-			COUNT(*) FILTER (WHERE status = 'PAID') AS queue_length,
-			COUNT(*) FILTER (WHERE status = 'COMPLETED' AND created_at::date = CURRENT_DATE) AS completed_orders,
-			COUNT(*) FILTER (WHERE status = 'CANCELLED' AND created_at::date = CURRENT_DATE) AS cancelled_orders,
-			COALESCE(AVG(EXTRACT(EPOCH FROM (completed_at - paid_at)) / 60) FILTER (WHERE completed_at IS NOT NULL AND paid_at IS NOT NULL AND created_at::date = CURRENT_DATE), 0) AS avg_completion_time_mins
+			COUNT(*) FILTER (WHERE created_at::date >= $1 AND created_at::date <= $2) AS total_orders,
+			COALESCE(SUM(total_amount) FILTER (WHERE created_at::date >= $1 AND created_at::date <= $2 AND status IN ('PAID', 'COMPLETED')), 0) AS total_revenue,
+			COUNT(*) FILTER (WHERE status = 'PENDING_PAYMENT' AND created_at::date >= $1 AND created_at::date <= $2) AS pending_orders,
+			COUNT(*) FILTER (WHERE status = 'PAID' AND created_at::date >= $1 AND created_at::date <= $2) AS queue_length,
+			COUNT(*) FILTER (WHERE status = 'COMPLETED' AND created_at::date >= $1 AND created_at::date <= $2) AS completed_orders,
+			COUNT(*) FILTER (WHERE status = 'CANCELLED' AND created_at::date >= $1 AND created_at::date <= $2) AS cancelled_orders,
+			COALESCE(AVG(EXTRACT(EPOCH FROM (completed_at - paid_at)) / 60) FILTER (WHERE completed_at IS NOT NULL AND paid_at IS NOT NULL AND created_at::date >= $1 AND created_at::date <= $2), 0) AS avg_completion_time_mins
 		FROM orders
 	`
 
-	err := h.db.GetContext(c.Context(), &stats, query)
+	err := h.db.GetContext(c.Context(), &stats, query, startDate, endDate)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get stats")
+		log.Error().Err(err).Str("start_date", startDate).Str("end_date", endDate).Msg("Failed to get stats")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to get stats",
 			"code":  "INTERNAL_ERROR",
@@ -50,30 +62,34 @@ func (h *StatsHandler) GetStats(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"total_orders_today":       stats.TotalOrdersToday,
-		"total_revenue_today":      stats.TotalRevenueToday,
-		"pending_orders":           stats.PendingOrders,
-		"queue_length":             stats.QueueLength,
-		"completed_orders":         stats.CompletedOrders,
-		"cancelled_orders":         stats.CancelledOrders,
+		"total_orders":           stats.TotalOrders,
+		"total_revenue":          stats.TotalRevenue,
+		"pending_orders":         stats.PendingOrders,
+		"queue_length":           stats.QueueLength,
+		"completed_orders":       stats.CompletedOrders,
+		"cancelled_orders":       stats.CancelledOrders,
 		"avg_completion_time_mins": stats.AvgCompletionTimeMins,
+		"start_date":             startDate,
+		"end_date":               endDate,
 	})
 }
 
-// GetOrdersByHour handles GET /api/v1/admin/stats/orders-by-hour
+// GetOrdersByHour handles GET /api/v1/admin/stats/orders-by-hour?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
 func (h *StatsHandler) GetOrdersByHour(c *fiber.Ctx) error {
+	startDate, endDate := parseDateRange(c)
+
 	query := `
 		SELECT
 			EXTRACT(HOUR FROM created_at)::int AS hour,
 			COUNT(*) AS count,
 			COALESCE(SUM(total_amount) FILTER (WHERE status IN ('PAID', 'COMPLETED')), 0) AS revenue
 		FROM orders
-		WHERE created_at::date = CURRENT_DATE
+		WHERE created_at::date >= $1 AND created_at::date <= $2
 		GROUP BY EXTRACT(HOUR FROM created_at)
 		ORDER BY hour
 	`
 
-	rows, err := h.db.QueryxContext(c.Context(), query)
+	rows, err := h.db.QueryxContext(c.Context(), query, startDate, endDate)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get orders by hour")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
@@ -105,8 +121,10 @@ func (h *StatsHandler) GetOrdersByHour(c *fiber.Ctx) error {
 	return c.JSON(results)
 }
 
-// GetPopularItems handles GET /api/v1/admin/stats/popular-items
+// GetPopularItems handles GET /api/v1/admin/stats/popular-items?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
 func (h *StatsHandler) GetPopularItems(c *fiber.Ctx) error {
+	startDate, endDate := parseDateRange(c)
+
 	query := `
 		SELECT
 			oi.menu_item_id,
@@ -115,14 +133,14 @@ func (h *StatsHandler) GetPopularItems(c *fiber.Ctx) error {
 			SUM(oi.price * oi.quantity) AS revenue
 		FROM order_items oi
 		JOIN orders o ON o.id = oi.order_id
-		WHERE o.created_at::date = CURRENT_DATE
+		WHERE o.created_at::date >= $1 AND o.created_at::date <= $2
 			AND o.status IN ('PAID', 'COMPLETED')
 		GROUP BY oi.menu_item_id, oi.name
 		ORDER BY quantity_sold DESC
 		LIMIT 10
 	`
 
-	rows, err := h.db.QueryxContext(c.Context(), query)
+	rows, err := h.db.QueryxContext(c.Context(), query, startDate, endDate)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get popular items")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
@@ -146,6 +164,60 @@ func (h *StatsHandler) GetPopularItems(c *fiber.Ctx) error {
 			"name":          name,
 			"quantity_sold": quantitySold,
 			"revenue":       revenue,
+		})
+	}
+
+	if results == nil {
+		results = []fiber.Map{}
+	}
+
+	return c.JSON(results)
+}
+
+// GetDailyBreakdown handles GET /api/v1/admin/stats/daily-breakdown?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
+func (h *StatsHandler) GetDailyBreakdown(c *fiber.Ctx) error {
+	startDate, endDate := parseDateRange(c)
+
+	query := `
+		SELECT
+			created_at::date AS date,
+			COUNT(*) AS total_orders,
+			COALESCE(SUM(total_amount) FILTER (WHERE status IN ('PAID', 'COMPLETED')), 0) AS revenue,
+			COUNT(*) FILTER (WHERE status = 'COMPLETED') AS completed,
+			COUNT(*) FILTER (WHERE status = 'CANCELLED') AS cancelled,
+			COALESCE(AVG(EXTRACT(EPOCH FROM (completed_at - paid_at)) / 60) FILTER (WHERE completed_at IS NOT NULL AND paid_at IS NOT NULL), 0) AS avg_completion_mins
+		FROM orders
+		WHERE created_at::date >= $1 AND created_at::date <= $2
+		GROUP BY created_at::date
+		ORDER BY date
+	`
+
+	rows, err := h.db.QueryxContext(c.Context(), query, startDate, endDate)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get daily breakdown")
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to get daily breakdown",
+			"code":  "INTERNAL_ERROR",
+		})
+	}
+	defer rows.Close()
+
+	var results []fiber.Map
+	for rows.Next() {
+		var date time.Time
+		var totalOrders, completed, cancelled int
+		var revenue, avgCompletionMins float64
+		if err := rows.Scan(&date, &totalOrders, &revenue, &completed, &cancelled, &avgCompletionMins); err != nil {
+			log.Error().Err(err).Msg("Failed to scan row")
+			continue
+		}
+		results = append(results, fiber.Map{
+			"date":                date.Format("2006-01-02"),
+			"total_orders":        totalOrders,
+			"revenue":             revenue,
+			"completed":           completed,
+			"cancelled":           cancelled,
+			"avg_completion_mins": avgCompletionMins,
 		})
 	}
 
