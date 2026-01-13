@@ -12,6 +12,7 @@ export interface MenuItem {
   name: string;
   price: number;
   category?: string;
+  image_url?: string;
   available: boolean;
   created_at: string;
   updated_at: string;
@@ -100,6 +101,7 @@ export interface CreateMenuItemRequest {
   name: string;
   price: number;
   category?: string;
+  image_url?: string;
   available: boolean;
 }
 
@@ -107,5 +109,6 @@ export interface UpdateMenuItemRequest {
   name?: string;
   price?: number;
   category?: string;
+  image_url?: string;
   available?: boolean;
 }

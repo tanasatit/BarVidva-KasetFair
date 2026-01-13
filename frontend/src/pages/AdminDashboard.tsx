@@ -49,9 +49,12 @@ function AdminDashboardContent() {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-sm text-gray-500">Bar Vidva - Kaset Fair</p>
+            <div className="flex items-center gap-3">
+              <img src="/images/logo.svg" alt="Bar Vidva" className="h-10" />
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
+                <p className="text-sm text-gray-500">Bar Vidva - Kaset Fair</p>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -667,6 +670,16 @@ interface MenuItemCardProps {
 function MenuItemCard({ item, onEdit, onDelete, onToggleAvailable }: MenuItemCardProps) {
   return (
     <div className={`bg-white rounded-xl border ${item.available ? 'border-gray-200' : 'border-red-200'} overflow-hidden`}>
+      {/* Image Section */}
+      <div className="aspect-video bg-gray-100 flex items-center justify-center overflow-hidden">
+        {item.image_url ? (
+          <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+        ) : (
+          <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        )}
+      </div>
       <div className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div>
@@ -726,7 +739,29 @@ function MenuItemForm({ initialData, onSubmit, onCancel, isLoading }: MenuItemFo
   const [name, setName] = useState(initialData?.name || '');
   const [price, setPrice] = useState(initialData?.price?.toString() || '');
   const [category, setCategory] = useState(initialData?.category || '');
+  const [imageUrl, setImageUrl] = useState(initialData?.image_url || '');
   const [available, setAvailable] = useState(initialData?.available ?? true);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Limit file size to 500KB for database storage
+    if (file.size > 500 * 1024) {
+      alert('ไฟล์รูปภาพต้องมีขนาดไม่เกิน 500KB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImageUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setImageUrl('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -735,12 +770,58 @@ function MenuItemForm({ initialData, onSubmit, onCancel, isLoading }: MenuItemFo
       name: name.trim(),
       price: parseFloat(price),
       category: category.trim() || undefined,
+      image_url: imageUrl || undefined,
       available,
     });
   };
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-orange-200 p-4 space-y-4">
+      {/* Image Upload Section */}
+      <div>
+        <label className="block text-sm text-gray-600 mb-2">รูปภาพเมนู</label>
+        <div className="flex items-start gap-4">
+          {/* Image Preview */}
+          <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50 flex-shrink-0">
+            {imageUrl ? (
+              <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+            ) : (
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            )}
+          </div>
+          {/* Upload Controls */}
+          <div className="flex-1 space-y-2">
+            <label className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors cursor-pointer">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              อัปโหลดรูป
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+            </label>
+            {imageUrl && (
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                className="inline-flex items-center gap-1 px-3 py-2 text-red-600 text-sm hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                ลบรูป
+              </button>
+            )}
+            <p className="text-xs text-gray-400">รองรับ JPG, PNG ขนาดไม่เกิน 500KB</p>
+          </div>
+        </div>
+      </div>
+
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm text-gray-600 mb-1">ชื่อเมนู</label>

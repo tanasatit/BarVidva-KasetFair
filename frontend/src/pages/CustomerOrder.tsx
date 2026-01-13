@@ -1,26 +1,31 @@
 import { useState } from 'react';
 import { useMenu } from '@/hooks/useMenu';
-import { useCreateOrder } from '@/hooks/useOrders';
+import { useOfflineOrder, useOnlineStatus } from '@/hooks/useOffline';
 import { MenuSelector } from '@/components/MenuSelector';
 import { NameInput } from '@/components/NameInput';
 import { OrderSummary } from '@/components/OrderSummary';
 import { PaymentInfo } from '@/components/PaymentInfo';
 import type { CartItem, Order } from '@/types/api';
+import type { PendingOrder } from '@/services/offline';
 import {
   generateOrderId,
   getCurrentDay,
   validateCustomerName,
   cartToOrderItems,
+  calculateTotal,
 } from '@/utils/orderUtils';
 
 export function CustomerOrder() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerName, setCustomerName] = useState('');
   const [submittedOrder, setSubmittedOrder] = useState<Order | null>(null);
+  const [pendingOrder, setPendingOrder] = useState<PendingOrder | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: menuItems, isLoading, isError: menuError } = useMenu();
-  const createOrder = useCreateOrder();
+  const { submitOrder, isSyncing } = useOfflineOrder();
+  const onlineStatus = useOnlineStatus();
 
   const handleSubmit = async () => {
     // Validate
@@ -36,22 +41,39 @@ export function CustomerOrder() {
     }
 
     setError(null);
+    setIsSubmitting(true);
 
     try {
       const day = getCurrentDay();
       const orderId = generateOrderId(day);
 
-      const order = await createOrder.mutateAsync({
+      const result = await submitOrder({
         id: orderId,
         customer_name: customerName.trim(),
         items: cartToOrderItems(cart),
         day,
       });
 
-      setSubmittedOrder(order);
+      if (result.order) {
+        // Order was submitted online
+        setSubmittedOrder(result.order);
+      } else if (result.pending) {
+        // Order was saved offline
+        setPendingOrder(result.pending);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ไม่สามารถส่งคำสั่งซื้อได้');
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  // Reset to new order
+  const handleNewOrder = () => {
+    setSubmittedOrder(null);
+    setPendingOrder(null);
+    setCart([]);
+    setCustomerName('');
   };
 
   // Show payment info after successful order
@@ -63,11 +85,72 @@ export function CustomerOrder() {
 
           <button
             type="button"
-            onClick={() => {
-              setSubmittedOrder(null);
-              setCart([]);
-              setCustomerName('');
-            }}
+            onClick={handleNewOrder}
+            className="w-full mt-6 py-3 px-4 rounded-lg border-2 border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+          >
+            สั่งซื้อเพิ่ม
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show offline order confirmation
+  if (pendingOrder) {
+    const totalAmount = calculateTotal(cart);
+    return (
+      <div className="min-h-screen bg-gray-50 py-6 px-4">
+        <div className="max-w-md mx-auto">
+          <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-6 text-center">
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-amber-800 mb-2">บันทึกออเดอร์แล้ว</h2>
+            <p className="text-amber-700 mb-4">
+              ออเดอร์ของคุณถูกบันทึกไว้ในเครื่อง และจะถูกส่งอัตโนมัติเมื่อมีสัญญาณอินเทอร์เน็ต
+            </p>
+
+            <div className="bg-white rounded-lg p-4 mb-4 text-left">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-gray-600">รหัสออเดอร์</span>
+                <span className="text-2xl font-bold text-gray-900">{pendingOrder.id}</span>
+              </div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-gray-600">ชื่อ</span>
+                <span className="text-gray-900">{pendingOrder.orderData.customer_name}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">ยอดรวม</span>
+                <span className="text-xl font-bold text-orange-600">{totalAmount.toFixed(0)} บาท</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 text-amber-600 mb-4">
+              {isSyncing ? (
+                <>
+                  <div className="animate-spin w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full" />
+                  <span className="text-sm">กำลังส่งออเดอร์...</span>
+                </>
+              ) : !onlineStatus ? (
+                <>
+                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                  <span className="text-sm">รอสัญญาณอินเทอร์เน็ต</span>
+                </>
+              ) : (
+                <span className="text-sm text-green-600">เชื่อมต่อแล้ว กำลังส่ง...</span>
+              )}
+            </div>
+
+            <p className="text-sm text-amber-600 mb-4">
+              กรุณารอที่บูธเพื่อยืนยันการชำระเงินหลังออเดอร์ถูกส่ง
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleNewOrder}
             className="w-full mt-6 py-3 px-4 rounded-lg border-2 border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition-colors"
           >
             สั่งซื้อเพิ่ม
@@ -115,11 +198,33 @@ export function CustomerOrder() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Offline Banner */}
+      {!onlineStatus && (
+        <div className="bg-amber-500 text-white px-4 py-2 text-center text-sm">
+          <div className="flex items-center justify-center gap-2">
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+            <span>ออฟไลน์ - ออเดอร์จะถูกส่งเมื่อมีสัญญาณ</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-orange-500 text-white py-4 px-4 shadow-md">
-        <div className="max-w-md mx-auto">
-          <h1 className="text-xl font-bold">Bar vidva</h1>
-          <p className="text-orange-100 text-sm">Kaset Fair 2026</p>
+        <div className="max-w-md mx-auto flex items-center gap-3">
+          <img src="/images/logo.svg" alt="Bar Vidva" className="h-10" />
+          <div className="flex-1">
+            <h1 className="text-xl font-bold">Bar Vidva</h1>
+            <p className="text-orange-100 text-sm">Kaset Fair 2026</p>
+          </div>
+          {/* Online/Offline indicator */}
+          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs ${
+            onlineStatus ? 'bg-green-500/20 text-green-100' : 'bg-amber-500/20 text-amber-100'
+          }`}>
+            <div className={`w-1.5 h-1.5 rounded-full ${
+              onlineStatus ? 'bg-green-400' : 'bg-amber-400 animate-pulse'
+            }`} />
+            {onlineStatus ? 'ออนไลน์' : 'ออฟไลน์'}
+          </div>
         </div>
       </header>
 
@@ -146,7 +251,7 @@ export function CustomerOrder() {
         <OrderSummary
           items={cart}
           onSubmit={handleSubmit}
-          isSubmitting={createOrder.isPending}
+          isSubmitting={isSubmitting}
           disabled={!hasValidName || cart.length === 0}
         />
       </main>

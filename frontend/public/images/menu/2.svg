@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Background -->
+  <rect width="200" height="200" rx="16" fill="#FFF7ED"/>
+  <!-- Container (medium) -->
+  <path d="M60 180 L68 90 L132 90 L140 180 Z" fill="#DC2626"/>
+  <path d="M68 90 L73 84 L127 84 L132 90 Z" fill="#EF4444"/>
+  <!-- Fries (more) -->
+  <rect x="72" y="45" width="8" height="50" rx="2" fill="#FCD34D" transform="rotate(-8 76 70)"/>
+  <rect x="82" y="40" width="8" height="55" rx="2" fill="#FBBF24" transform="rotate(-3 86 67)"/>
+  <rect x="92" y="38" width="8" height="57" rx="2" fill="#FCD34D"/>
+  <rect x="102" y="40" width="8" height="55" rx="2" fill="#FBBF24" transform="rotate(3 106 67)"/>
+  <rect x="112" y="45" width="8" height="50" rx="2" fill="#FCD34D" transform="rotate(8 116 70)"/>
+  <rect x="122" y="50" width="8" height="45" rx="2" fill="#FBBF24" transform="rotate(12 126 72)"/>
+  <rect x="62" y="52" width="8" height="43" rx="2" fill="#FBBF24" transform="rotate(-12 66 73)"/>
+  <!-- Size label -->
+  <circle cx="100" cy="150" r="18" fill="white"/>
+  <text x="100" y="156" text-anchor="middle" font-family="system-ui" font-size="16" font-weight="bold" fill="#DC2626">M</text>
+</svg>

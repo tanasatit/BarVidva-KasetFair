@@ -66,14 +66,15 @@ func (r *menuRepository) GetAvailable(ctx context.Context) ([]models.MenuItem, e
 // Create inserts a new menu item
 func (r *menuRepository) Create(ctx context.Context, item *models.MenuItem) error {
 	query := `
-		INSERT INTO menu_items (name, price, category, available, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, NOW(), NOW())
+		INSERT INTO menu_items (name, price, category, image_url, available, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
 		RETURNING id, created_at, updated_at
 	`
 	err := r.db.QueryRowContext(ctx, query,
 		item.Name,
 		item.Price,
 		item.Category,
+		item.ImageURL,
 		item.Available,
 	).Scan(&item.ID, &item.CreatedAt, &item.UpdatedAt)
 	if err != nil {
@@ -86,14 +87,15 @@ func (r *menuRepository) Create(ctx context.Context, item *models.MenuItem) erro
 func (r *menuRepository) Update(ctx context.Context, item *models.MenuItem) error {
 	query := `
 		UPDATE menu_items
-		SET name = $1, price = $2, category = $3, available = $4, updated_at = NOW()
-		WHERE id = $5
+		SET name = $1, price = $2, category = $3, image_url = $4, available = $5, updated_at = NOW()
+		WHERE id = $6
 		RETURNING updated_at
 	`
 	err := r.db.QueryRowContext(ctx, query,
 		item.Name,
 		item.Price,
 		item.Category,
+		item.ImageURL,
 		item.Available,
 		item.ID,
 	).Scan(&item.UpdatedAt)
