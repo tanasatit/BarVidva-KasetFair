@@ -117,9 +117,12 @@ export function CustomerOrder() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-orange-500 text-white py-4 px-4 shadow-md">
-        <div className="max-w-md mx-auto">
-          <h1 className="text-xl font-bold">Bar vidva</h1>
-          <p className="text-orange-100 text-sm">Kaset Fair 2026</p>
+        <div className="max-w-md mx-auto flex items-center gap-3">
+          <img src="/images/logo.svg" alt="Bar Vidva" className="h-10" />
+          <div>
+            <h1 className="text-xl font-bold">Bar Vidva</h1>
+            <p className="text-orange-100 text-sm">Kaset Fair 2026</p>
+          </div>
         </div>
       </header>
 

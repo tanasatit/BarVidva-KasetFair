@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { MenuItem, CartItem } from '@/types/api';
 import { formatPrice } from '@/utils/orderUtils';
 
@@ -5,6 +6,20 @@ interface MenuSelectorProps {
   items: MenuItem[];
   cart: CartItem[];
   onUpdateCart: (cart: CartItem[]) => void;
+}
+
+function MenuItemImage({ itemId, name }: { itemId: number; name: string }) {
+  const [hasError, setHasError] = useState(false);
+  const imageSrc = hasError ? '/images/menu/placeholder.svg' : `/images/menu/${itemId}.svg`;
+
+  return (
+    <img
+      src={imageSrc}
+      alt={name}
+      className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+      onError={() => setHasError(true)}
+    />
+  );
 }
 
 export function MenuSelector({ items, cart, onUpdateCart }: MenuSelectorProps) {
@@ -54,13 +69,14 @@ export function MenuSelector({ items, cart, onUpdateCart }: MenuSelectorProps) {
           return (
             <div
               key={item.id}
-              className={`flex items-center justify-between p-4 rounded-lg border-2 transition-colors ${
+              className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-colors ${
                 quantity > 0
                   ? 'border-orange-500 bg-orange-50'
                   : 'border-gray-200 bg-white'
               }`}
             >
-              <div className="flex-1">
+              <MenuItemImage itemId={item.id} name={item.name} />
+              <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-gray-900">{item.name}</h3>
                 <p className="text-orange-600 font-semibold">
                   {formatPrice(item.price)}
