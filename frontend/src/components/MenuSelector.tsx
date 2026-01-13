@@ -8,9 +8,11 @@ interface MenuSelectorProps {
   onUpdateCart: (cart: CartItem[]) => void;
 }
 
-function MenuItemImage({ itemId, name }: { itemId: number; name: string }) {
+function MenuItemImage({ imageUrl, name }: { imageUrl?: string; name: string }) {
   const [hasError, setHasError] = useState(false);
-  const imageSrc = hasError ? '/images/menu/placeholder.svg' : `/images/menu/${itemId}.svg`;
+
+  // Use image_url from API if available, otherwise use placeholder
+  const imageSrc = hasError || !imageUrl ? '/images/menu/placeholder.svg' : imageUrl;
 
   return (
     <img
@@ -75,7 +77,7 @@ export function MenuSelector({ items, cart, onUpdateCart }: MenuSelectorProps) {
                   : 'border-gray-200 bg-white'
               }`}
             >
-              <MenuItemImage itemId={item.id} name={item.name} />
+              <MenuItemImage imageUrl={item.image_url} name={item.name} />
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-gray-900">{item.name}</h3>
                 <p className="text-orange-600 font-semibold">
