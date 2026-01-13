@@ -11,7 +11,7 @@ import (
 )
 
 // setupRoutes configures all API routes for the application
-func setupRoutes(app *fiber.App, db *sqlx.DB, orderHandler *handlers.OrderHandler, menuHandler *handlers.MenuHandler) {
+func setupRoutes(app *fiber.App, db *sqlx.DB, orderHandler *handlers.OrderHandler, menuHandler *handlers.MenuHandler, statsHandler *handlers.StatsHandler) {
 	// Health check endpoint
 	app.Get("/health", func(c *fiber.Ctx) error {
 		// Check database
@@ -49,6 +49,7 @@ func setupRoutes(app *fiber.App, db *sqlx.DB, orderHandler *handlers.OrderHandle
 
 	// Staff order management
 	staff.Get("/orders/pending", orderHandler.GetPendingPayment)
+	staff.Get("/orders/completed", orderHandler.GetCompletedOrders)
 	staff.Put("/orders/:id/verify", orderHandler.VerifyPayment)
 	staff.Put("/orders/:id/complete", orderHandler.CompleteOrder)
 	staff.Delete("/orders/:id", orderHandler.CancelOrder)
@@ -56,6 +57,12 @@ func setupRoutes(app *fiber.App, db *sqlx.DB, orderHandler *handlers.OrderHandle
 	// Admin routes (require admin authentication)
 	adminPassword := os.Getenv("ADMIN_PASSWORD")
 	admin := api.Group("/admin", AdminAuth(adminPassword))
+
+	// Admin stats
+	admin.Get("/stats", statsHandler.GetStats)
+	admin.Get("/stats/orders-by-hour", statsHandler.GetOrdersByHour)
+	admin.Get("/stats/popular-items", statsHandler.GetPopularItems)
+	admin.Get("/stats/daily-breakdown", statsHandler.GetDailyBreakdown)
 
 	// Admin menu management
 	admin.Get("/menu", menuHandler.GetMenu)

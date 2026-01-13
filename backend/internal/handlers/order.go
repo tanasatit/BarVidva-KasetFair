@@ -77,6 +77,20 @@ func (h *OrderHandler) GetQueue(c *fiber.Ctx) error {
 	return c.Status(http.StatusOK).JSON(orders)
 }
 
+// GetCompletedOrders handles GET /api/v1/staff/orders/completed
+func (h *OrderHandler) GetCompletedOrders(c *fiber.Ctx) error {
+	orders, err := h.orderService.GetCompleted(c.Context())
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get completed orders")
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to get completed orders",
+			"code":  "INTERNAL_ERROR",
+		})
+	}
+
+	return c.Status(http.StatusOK).JSON(orders)
+}
+
 // VerifyPayment handles PUT /api/v1/staff/orders/:id/verify
 func (h *OrderHandler) VerifyPayment(c *fiber.Ctx) error {
 	id := c.Params("id")

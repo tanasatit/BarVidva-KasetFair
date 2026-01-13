@@ -1,12 +1,17 @@
-# Env files
-.env
+# Node
+node_modules/
+frontend/node_modules/
 
-# Docker
-postgres_data/
+# Vite
+frontend/.vite/
+
+# Build output
+frontend/dist/
+
+# Env
+.env
+.env.*
 
 # OS
 .DS_Store
 
-# Build artifacts
-dist/
-bin/

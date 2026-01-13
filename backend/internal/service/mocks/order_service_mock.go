@@ -69,3 +69,13 @@ func (m *MockOrderService) CancelOrder(ctx context.Context, id string) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
 }
+
+func (m *MockOrderService) GetCompleted(ctx context.Context) ([]models.Order, error) {
+    args := m.Called(ctx)
+
+    if args.Get(0) != nil {
+        return args.Get(0).([]models.Order), args.Error(1)
+    }
+
+    return nil, args.Error(1)
+}
