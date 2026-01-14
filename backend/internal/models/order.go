@@ -15,12 +15,12 @@ const (
 
 // Order represents a customer order
 type Order struct {
-	ID           string      `json:"id" db:"id" validate:"required,len=4"`
+	ID           string      `json:"id" db:"id" validate:"required,len=7"`
 	CustomerName string      `json:"customer_name" db:"customer_name" validate:"required,min=2,max=50"`
 	Items        []OrderItem `json:"items" validate:"required,min=1,dive"`
 	TotalAmount  float64     `json:"total_amount" db:"total_amount" validate:"required,gt=0"`
 	Status       OrderStatus `json:"status" db:"status"`
-	Day          int         `json:"day" db:"day" validate:"required,min=1,max=9"`
+	DateKey      int         `json:"date_key" db:"date_key" validate:"required,min=101,max=3112"`
 	QueueNumber  *int        `json:"queue_number,omitempty" db:"queue_number"`
 	CreatedAt    time.Time   `json:"created_at" db:"created_at"`
 	PaidAt       *time.Time  `json:"paid_at,omitempty" db:"paid_at"`
@@ -38,9 +38,10 @@ type OrderItem struct {
 }
 
 // CreateOrderRequest represents the request body for creating an order
+// Note: ID is optional - server generates sequential ID if not provided
 type CreateOrderRequest struct {
-	ID           string      `json:"id" validate:"required,len=4"`
+	ID           string      `json:"id,omitempty"`
 	CustomerName string      `json:"customer_name" validate:"required,min=2,max=50"`
 	Items        []OrderItem `json:"items" validate:"required,min=1,dive"`
-	Day          int         `json:"day" validate:"required,min=1,max=9"`
+	DateKey      int         `json:"date_key" validate:"required,min=101,max=3112"`
 }

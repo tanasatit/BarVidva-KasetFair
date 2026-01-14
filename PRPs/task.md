@@ -1,6 +1,6 @@
 # Task: MVP Order Creation Flow
 
-**Status**: Phase 1 Complete ✅ | Phase 2 Complete ✅ | Phase 3 Complete ✅
+**Status**: Phase 1 Complete ✅ | Phase 2 Complete ✅ | Phase 3 Complete ✅ | Phase 4 In Progress 🚧
 **Priority**: P0 (Blocking for MVP)
 **Last Updated**: 2026-01-14
 
@@ -66,7 +66,49 @@ Complete customer-facing order creation flow for Bar vidva's Kaset Fair 2026 foo
 - [x] Cache menu data (1 hour TTL, NetworkFirst strategy)
 - [x] Cache static assets (CacheFirst strategy)
 
-### 🚧 Phase 4: Testing & Polish (Pending)
+### 🚧 Phase 4: Features, Testing & Polish (In Progress)
+
+#### Core Features (New)
+- [ ] **PromptPay QR Code Generation**
+  - [ ] Install qrcode.react package for dynamic QR generation
+  - [ ] Generate a PromptPay QR code using the PROMPTPAY_NUMBER environment variable
+  - [ ] PromptPay QR code include the total order amount
+  - [ ] Display downloadable QR image in PaymentInfo component
+  - [ ] Allow customer to save/screenshot QR for bank payment
+
+- [x] **Order ID Format Update** (DXXX → DDMMXXX) ✅
+  - [x] Update backend `GenerateOrderID()` to use DDMMXXX format (e.g., 1401001 = Jan 14, Order 1)
+  - [x] Update database schema: `orders.id` VARCHAR(4) → VARCHAR(7), `day` → `date_key`
+  - [x] Update frontend `generateOrderId()` to match new format
+  - [x] Update validation and parsing functions
+  - [x] All tests updated and passing
+
+- [ ] **Order Auto-Expiry** (10 min → 1 hour)
+  - [ ] Implement background goroutine for auto-cancellation
+  - [ ] Cancel unpaid orders after 1 hour (configurable)
+  - [ ] Use existing CANCELLED status
+  - [ ] Log expiry events for analytics
+
+#### Admin Dashboard Enhancements
+- [ ] **Orders Table Improvements**
+  - [ ] Add search by order ID or customer name
+  - [ ] Add sort options (date, amount, status)
+  - [ ] Add filter by status
+  - [ ] Add filter by customer name ("select user")
+  - [ ] Implement pagination (10 items per page)
+  - [ ] Backend: Add pagination, search, filter query params to API
+
+#### Staff Dashboard Enhancements
+- [ ] **Waiting Payment Tab**
+  - [ ] Add confirmation modal for "Verify Payment" action
+  - [ ] Add confirmation modal for "Cancel Order" action
+  - [ ] Show order details in modal before confirming
+- [ ] **General Improvements**
+  - [ ] Add search by order ID across all tabs
+  - [ ] Add filter options
+  - [ ] Ensure oldest-first sorting (verify FIFO)
+
+#### Testing
 - [x] Backend unit tests (Go) - handlers, services, utils
 - [x] PWA manifest configuration (via vite-plugin-pwa)
 - [ ] Frontend component tests (Vitest)
@@ -106,9 +148,13 @@ Complete customer-facing order creation flow for Bar vidva's Kaset Fair 2026 foo
 - Disable after first click
 
 ### 6. Order ID Generation ✅
-- Format: DXXX (e.g., "1001" = Day 1, Order 1)
-- Client-side generation
+- Format: DDMMXXX (e.g., "1401001" = Jan 14, Order 1)
+- DD = day of month (01-31)
+- MM = month (01-12)
+- XXX = sequence number (001-999), resets daily
+- Client-side generation for offline support
 - Server validates uniqueness
+- DateKey stored as integer (e.g., 1401 for Jan 14)
 
 ### 7. Payment Instructions ✅
 - Display total amount prominently
@@ -184,23 +230,54 @@ Complete customer-facing order creation flow for Bar vidva's Kaset Fair 2026 foo
 
 ---
 
-## Next Steps (Phase 4: Testing & Polish)
+## Next Steps (Phase 4: Features, Testing & Polish)
 
-1. **Frontend Testing**
+### Priority 1: Core Features (Before Testing)
+1. **PromptPay QR Code**
+   - Add `qrcode.react` package
+   - Generate QR from PROMPTPAY_NUMBER
+   - Add download/screenshot capability
+
+2. **Order ID Format Change**
+   - Update backend (Go) to DDMMXXX format
+   - Create database migration for VARCHAR(7)
+   - Update frontend utilities
+   - Update validation/parsing
+
+3. **Order Auto-Expiry**
+   - Implement background goroutine
+   - Change timeout: 10 min → 1 hour
+   - Auto-cancel unpaid orders
+
+### Priority 2: UX/UI Enhancements
+4. **Admin Dashboard Orders Table**
+   - Add search (order ID, customer name)
+   - Add sort (date, amount, status)
+   - Add filter (status, customer)
+   - Add pagination (10 items/page)
+
+5. **Staff Dashboard Improvements**
+   - Add confirmation modal for verify/cancel
+   - Add search by order ID
+   - Add filter options
+
+### Priority 3: Testing
+6. **Frontend Testing**
    - Add Vitest component tests
    - Test offline functionality
    - Integration tests
 
-2. **Load Testing**
+7. **Load Testing**
    - Test 50+ concurrent users
    - Verify database performance
 
-3. **Manual Testing**
+8. **Manual Testing**
    - Test on 3G network throttling
    - Test offline/online transitions
    - Verify PWA install experience
 
-4. **Deployment Preparation**
+### Priority 4: Deployment
+9. **Deployment Preparation**
    - Review production configuration
    - Prepare deployment scripts
 
@@ -233,6 +310,6 @@ Complete customer-facing order creation flow for Bar vidva's Kaset Fair 2026 foo
 
 ---
 
-**Document Version**: 4.0
+**Document Version**: 5.0
 **Last Review**: 2026-01-14
-**Status**: Phase 1, 2 & 3 Complete, Phase 4 (Testing & Polish) Pending
+**Status**: Phase 1, 2 & 3 Complete, Phase 4 (Features, Testing & Polish) In Progress

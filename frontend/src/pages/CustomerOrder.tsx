@@ -8,8 +8,7 @@ import { PaymentInfo } from '@/components/PaymentInfo';
 import type { CartItem, Order } from '@/types/api';
 import type { PendingOrder } from '@/services/offline';
 import {
-  generateOrderId,
-  getCurrentDay,
+  getCurrentDateKey,
   validateCustomerName,
   cartToOrderItems,
   calculateTotal,
@@ -44,14 +43,13 @@ export function CustomerOrder() {
     setIsSubmitting(true);
 
     try {
-      const day = getCurrentDay();
-      const orderId = generateOrderId(day);
+      const dateKey = getCurrentDateKey();
 
+      // Server assigns sequential order ID
       const result = await submitOrder({
-        id: orderId,
         customer_name: customerName.trim(),
         items: cartToOrderItems(cart),
-        day,
+        date_key: dateKey,
       });
 
       if (result.order) {

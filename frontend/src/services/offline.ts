@@ -59,11 +59,18 @@ function getDB(): Promise<IDBPDatabase<BarVidvaDB>> {
   return dbPromise;
 }
 
+// Generate a temporary local ID for offline orders
+function generateTempId(): string {
+  return `TEMP-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+}
+
 // Save a pending order to IndexedDB
 export async function savePendingOrder(orderData: CreateOrderRequest): Promise<PendingOrder> {
   const db = await getDB();
+  // Use temporary ID for local storage (server will assign real sequential ID)
+  const tempId = generateTempId();
   const pendingOrder: PendingOrder = {
-    id: orderData.id,
+    id: tempId,
     orderData,
     createdAt: Date.now(),
     retryCount: 0,

@@ -48,18 +48,23 @@ func (s *orderService) CreateOrder(ctx context.Context, req *models.CreateOrderR
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	// Validate order
+	// Validate order (basic validation, ID will be generated server-side)
 	if err := s.ValidateOrder(ctx, req); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
 	}
 
-	// Check for duplicate order ID
-	exists, err := s.orderRepo.CheckDuplicateID(ctx, req.ID)
+	// Get next sequential order number for this date
+	sequence, err := s.orderRepo.GetNextSequence(ctx, req.DateKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check duplicate: %w", err)
+		return nil, fmt.Errorf("failed to get sequence: %w", err)
 	}
-	if exists {
-		return nil, fmt.Errorf("order ID already exists: %s", req.ID)
+
+	// Generate order ID server-side (DDMMXXX format with sequential number)
+	dayOfMonth := req.DateKey / 100
+	month := req.DateKey % 100
+	orderID, err := utils.GenerateOrderID(dayOfMonth, month, sequence)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate order ID: %w", err)
 	}
 
 	// Calculate total amount (server-side verification)
@@ -68,14 +73,14 @@ func (s *orderService) CreateOrder(ctx context.Context, req *models.CreateOrderR
 		totalAmount += item.Price * float64(item.Quantity)
 	}
 
-	// Create order object
+	// Create order object with server-generated sequential ID
 	order := &models.Order{
-		ID:           req.ID,
+		ID:           orderID,
 		CustomerName: req.CustomerName,
 		Items:        req.Items,
 		TotalAmount:  totalAmount,
 		Status:       models.OrderStatusPendingPayment,
-		Day:          req.Day,
+		DateKey:      req.DateKey,
 		CreatedAt:    time.Now().UTC(),
 	}
 
@@ -106,15 +111,12 @@ func (s *orderService) ValidateOrder(ctx context.Context, req *models.CreateOrde
 		return fmt.Errorf("customer name must be 2-50 characters")
 	}
 
-	// Validate day
-	if req.Day < 1 || req.Day > 9 {
-		return fmt.Errorf("day must be between 1 and 9")
+	// Validate date key (DDMM format: 101-3112)
+	if req.DateKey < 101 || req.DateKey > 3112 {
+		return fmt.Errorf("date_key must be in DDMM format (101-3112)")
 	}
 
-	// Validate order ID format
-	if !utils.ValidateOrderIDFormat(req.ID, req.Day) {
-		return fmt.Errorf("invalid order ID format")
-	}
+	// Note: Order ID is generated server-side, no need to validate client ID
 
 	// Validate items
 	if len(req.Items) == 0 {
@@ -215,8 +217,8 @@ func (s *orderService) VerifyPayment(ctx context.Context, id string) (*models.Or
 		return nil, fmt.Errorf("order is not in pending payment status")
 	}
 
-	// Get next queue number for the day
-	queueNumber, err := s.orderRepo.GetNextQueueNumber(ctx, order.Day)
+	// Get next queue number for the date
+	queueNumber, err := s.orderRepo.GetNextQueueNumber(ctx, order.DateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get queue number: %w", err)
 	}
