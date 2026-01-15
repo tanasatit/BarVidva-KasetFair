@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/tanasatit/barvidva-kasetfair/internal/models"
@@ -21,6 +22,7 @@ type OrderRepository interface {
 	VerifyPayment(ctx context.Context, id string, queueNumber int) error
 	CompleteOrder(ctx context.Context, id string) error
 	GetNextQueueNumber(ctx context.Context, dateKey int) (int, error)
+	ExpireOldOrders(ctx context.Context, cutoff time.Time) (int64, error)
 }
 
 type orderRepository struct {
@@ -278,4 +280,25 @@ func (r *orderRepository) GetNextQueueNumber(ctx context.Context, dateKey int) (
 	}
 
 	return int(maxQueue.Int64) + 1, nil
+}
+
+// ExpireOldOrders cancels all orders in PENDING_PAYMENT status that were created before the cutoff time.
+// Returns the number of orders that were expired.
+func (r *orderRepository) ExpireOldOrders(ctx context.Context, cutoff time.Time) (int64, error) {
+	query := `
+		UPDATE orders
+		SET status = $1
+		WHERE status = $2 AND created_at < $3
+	`
+	result, err := r.db.ExecContext(ctx, query, models.OrderStatusCancelled, models.OrderStatusPendingPayment, cutoff)
+	if err != nil {
+		return 0, fmt.Errorf("failed to expire old orders: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	return rowsAffected, nil
 }

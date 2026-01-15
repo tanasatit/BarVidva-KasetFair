@@ -2,7 +2,7 @@
 
 **Status**: Phase 1 Complete ✅ | Phase 2 Complete ✅ | Phase 3 Complete ✅ | Phase 4 In Progress 🚧
 **Priority**: P0 (Blocking for MVP)
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-01-16
 
 ---
 
@@ -69,12 +69,12 @@ Complete customer-facing order creation flow for Bar vidva's Kaset Fair 2026 foo
 ### 🚧 Phase 4: Features, Testing & Polish (In Progress)
 
 #### Core Features (New)
-- [ ] **PromptPay QR Code Generation**
-  - [ ] Install qrcode.react package for dynamic QR generation
-  - [ ] Generate a PromptPay QR code using the PROMPTPAY_NUMBER environment variable
-  - [ ] PromptPay QR code include the total order amount
-  - [ ] Display downloadable QR image in PaymentInfo component
-  - [ ] Allow customer to save/screenshot QR for bank payment
+- [x] **PromptPay QR Code Generation** ✅
+  - [x] Install qrcode.react package for dynamic QR generation
+  - [x] Generate a PromptPay QR code using the PROMPTPAY_NUMBER environment variable
+  - [x] PromptPay QR code include the total order amount
+  - [x] Display downloadable QR image in PaymentInfo component
+  - [x] Allow customer to save/screenshot QR for bank payment
 
 - [x] **Order ID Format Update** (DXXX → DDMMXXX) ✅
   - [x] Update backend `GenerateOrderID()` to use DDMMXXX format (e.g., 1401001 = Jan 14, Order 1)
@@ -83,11 +83,11 @@ Complete customer-facing order creation flow for Bar vidva's Kaset Fair 2026 foo
   - [x] Update validation and parsing functions
   - [x] All tests updated and passing
 
-- [ ] **Order Auto-Expiry** (10 min → 1 hour)
-  - [ ] Implement background goroutine for auto-cancellation
-  - [ ] Cancel unpaid orders after 1 hour (configurable)
-  - [ ] Use existing CANCELLED status
-  - [ ] Log expiry events for analytics
+- [x] **Order Auto-Expiry** (10 min → 1 hour) ✅
+  - [x] Implement background goroutine for auto-cancellation
+  - [x] Cancel unpaid orders after 1 hour (configurable via ORDER_EXPIRY_MINUTES env var)
+  - [x] Use existing CANCELLED status
+  - [x] Log expiry events for analytics (using zerolog)
 
 #### Admin Dashboard Enhancements
 - [ ] **Orders Table Improvements**
@@ -232,22 +232,10 @@ Complete customer-facing order creation flow for Bar vidva's Kaset Fair 2026 foo
 
 ## Next Steps (Phase 4: Features, Testing & Polish)
 
-### Priority 1: Core Features (Before Testing)
-1. **PromptPay QR Code**
-   - Add `qrcode.react` package
-   - Generate QR from PROMPTPAY_NUMBER
-   - Add download/screenshot capability
-
-2. **Order ID Format Change**
-   - Update backend (Go) to DDMMXXX format
-   - Create database migration for VARCHAR(7)
-   - Update frontend utilities
-   - Update validation/parsing
-
-3. **Order Auto-Expiry**
-   - Implement background goroutine
-   - Change timeout: 10 min → 1 hour
-   - Auto-cancel unpaid orders
+### Priority 1: Core Features (Before Testing) ✅ COMPLETE
+1. **PromptPay QR Code** ✅
+2. **Order ID Format Change** ✅
+3. **Order Auto-Expiry** ✅
 
 ### Priority 2: UX/UI Enhancements
 4. **Admin Dashboard Orders Table**
@@ -310,6 +298,6 @@ Complete customer-facing order creation flow for Bar vidva's Kaset Fair 2026 foo
 
 ---
 
-**Document Version**: 5.0
-**Last Review**: 2026-01-14
-**Status**: Phase 1, 2 & 3 Complete, Phase 4 (Features, Testing & Polish) In Progress
+**Document Version**: 5.1
+**Last Review**: 2026-01-16
+**Status**: Phase 1, 2 & 3 Complete, Phase 4 Core Features Complete, UX/Testing In Progress
