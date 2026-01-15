@@ -9,7 +9,7 @@ import type { OrderItem, CartItem } from '@/types/api';
  * Client-side generation for offline support.
  * Server validates uniqueness and may reassign.
  */
-export function generateOrderId(dateKey?: number): string {
+export function generateOrderId(): string {
   const now = new Date();
   const dayOfMonth = now.getDate();
   const month = now.getMonth() + 1; // JavaScript months are 0-indexed
