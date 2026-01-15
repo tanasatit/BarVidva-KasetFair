@@ -104,13 +104,15 @@ export async function removePendingOrder(id: string): Promise<void> {
 }
 
 // Mark an order as synced
-export async function markOrderSynced(order: Order): Promise<void> {
+// tempId: the temporary ID used in IndexedDB (TEMP-xxxxx format)
+// order: the server-returned order with real ID
+export async function markOrderSynced(tempId: string, order: Order): Promise<void> {
   const db = await getDB();
 
-  // Remove from pending
-  await db.delete('pendingOrders', order.id);
+  // Remove from pending using the temp ID (the key in IndexedDB)
+  await db.delete('pendingOrders', tempId);
 
-  // Add to synced
+  // Add to synced using the real server ID
   const syncedOrder: SyncedOrder = {
     id: order.id,
     order,
