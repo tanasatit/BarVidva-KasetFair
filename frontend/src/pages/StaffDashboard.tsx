@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { StaffProvider, useStaffAuth } from '@/context/StaffContext';
 import { StaffLogin } from '@/components/StaffLogin';
 import {
@@ -13,10 +13,12 @@ import type { Order } from '@/types/api';
 import { formatPrice } from '@/utils/orderUtils';
 
 type TabType = 'pending' | 'queue' | 'completed';
+type ModalType = 'verify' | 'cancel' | null;
 
 function StaffDashboardContent() {
   const { isAuthenticated, isLoading: authLoading, logout } = useStaffAuth();
   const [activeTab, setActiveTab] = useState<TabType>('pending');
+  const [searchQuery, setSearchQuery] = useState('');
 
   if (authLoading) {
     return (
@@ -107,11 +109,39 @@ function StaffDashboardContent() {
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="max-w-7xl mx-auto px-4 pt-4">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="ค้นหา Order ID หรือชื่อลูกค้า..."
+            className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Tab Content */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {activeTab === 'pending' && <PendingTab />}
-        {activeTab === 'queue' && <QueueTab />}
-        {activeTab === 'completed' && <CompletedTab />}
+      <main className="max-w-7xl mx-auto px-4 py-4">
+        {activeTab === 'pending' && <PendingTab searchQuery={searchQuery} />}
+        {activeTab === 'queue' && <QueueTab searchQuery={searchQuery} />}
+        {activeTab === 'completed' && <CompletedTab searchQuery={searchQuery} />}
       </main>
     </div>
   );
@@ -140,10 +170,66 @@ function TabButton({ active, onClick, icon, label }: TabButtonProps) {
   );
 }
 
-function PendingTab() {
+interface TabProps {
+  searchQuery: string;
+}
+
+function PendingTab({ searchQuery }: TabProps) {
   const { data: orders, isLoading, error } = usePendingOrders();
   const verifyPayment = useVerifyPayment();
   const cancelOrder = useCancelOrder();
+  const [modalState, setModalState] = useState<{ type: ModalType; order: Order | null }>({
+    type: null,
+    order: null,
+  });
+
+  // Filter and sort orders (FIFO - oldest first)
+  const filteredOrders = useMemo(() => {
+    if (!orders) return [];
+    let result = [...orders];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(order =>
+        order.id.toLowerCase().includes(query) ||
+        order.customer_name.toLowerCase().includes(query)
+      );
+    }
+
+    // Sort by oldest first (FIFO)
+    result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+    return result;
+  }, [orders, searchQuery]);
+
+  const handleVerifyClick = (order: Order) => {
+    setModalState({ type: 'verify', order });
+  };
+
+  const handleCancelClick = (order: Order) => {
+    setModalState({ type: 'cancel', order });
+  };
+
+  const handleConfirmVerify = () => {
+    if (modalState.order) {
+      verifyPayment.mutate(modalState.order.id, {
+        onSuccess: () => setModalState({ type: null, order: null }),
+      });
+    }
+  };
+
+  const handleConfirmCancel = () => {
+    if (modalState.order) {
+      cancelOrder.mutate(modalState.order.id, {
+        onSuccess: () => setModalState({ type: null, order: null }),
+      });
+    }
+  };
+
+  const closeModal = () => {
+    setModalState({ type: null, order: null });
+  };
 
   if (isLoading) {
     return <LoadingState />;
@@ -171,42 +257,100 @@ function PendingTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">
-          รอชำระเงิน ({orders.length} รายการ)
+          รอชำระเงิน ({filteredOrders.length}{searchQuery && ` / ${orders.length}`} รายการ)
         </h2>
+        <span className="text-xs text-gray-500">เรียงจากเก่า → ใหม่ (FIFO)</span>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {orders.map((order) => (
-          <OrderCard
-            key={order.id}
-            order={order}
-            actions={
-              <div className="flex gap-2">
-                <button
-                  onClick={() => cancelOrder.mutate(order.id)}
-                  disabled={cancelOrder.isPending}
-                  className="flex-1 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  onClick={() => verifyPayment.mutate(order.id)}
-                  disabled={verifyPayment.isPending}
-                  className="flex-1 px-3 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  ยืนยันชำระเงิน
-                </button>
-              </div>
-            }
-          />
-        ))}
-      </div>
+
+      {filteredOrders.length === 0 && searchQuery ? (
+        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+          <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <p className="text-gray-500">ไม่พบออเดอร์ที่ตรงกับการค้นหา</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredOrders.map((order) => (
+            <OrderCard
+              key={order.id}
+              order={order}
+              actions={
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleCancelClick(order)}
+                    className="flex-1 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    onClick={() => handleVerifyClick(order)}
+                    className="flex-1 px-3 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-lg transition-colors"
+                  >
+                    ยืนยันชำระเงิน
+                  </button>
+                </div>
+              }
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Verify Payment Modal */}
+      {modalState.type === 'verify' && modalState.order && (
+        <ConfirmModal
+          title="ยืนยันการชำระเงิน"
+          message="คุณต้องการยืนยันการชำระเงินสำหรับออเดอร์นี้หรือไม่?"
+          order={modalState.order}
+          confirmText="ยืนยันชำระเงิน"
+          confirmStyle="success"
+          onConfirm={handleConfirmVerify}
+          onCancel={closeModal}
+          isLoading={verifyPayment.isPending}
+        />
+      )}
+
+      {/* Cancel Order Modal */}
+      {modalState.type === 'cancel' && modalState.order && (
+        <ConfirmModal
+          title="ยกเลิกออเดอร์"
+          message="คุณต้องการยกเลิกออเดอร์นี้หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้"
+          order={modalState.order}
+          confirmText="ยืนยันยกเลิก"
+          confirmStyle="danger"
+          onConfirm={handleConfirmCancel}
+          onCancel={closeModal}
+          isLoading={cancelOrder.isPending}
+        />
+      )}
     </div>
   );
 }
 
-function QueueTab() {
+function QueueTab({ searchQuery }: TabProps) {
   const { data: orders, isLoading, error } = useQueueOrders();
   const completeOrder = useCompleteOrder();
+
+  // Filter and sort orders (FIFO - oldest first / by queue number)
+  const filteredOrders = useMemo(() => {
+    if (!orders) return [];
+    let result = [...orders];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(order =>
+        order.id.toLowerCase().includes(query) ||
+        order.customer_name.toLowerCase().includes(query) ||
+        (order.queue_number && order.queue_number.toString().includes(query))
+      );
+    }
+
+    // Sort by queue number (FIFO)
+    result.sort((a, b) => (a.queue_number || 0) - (b.queue_number || 0));
+
+    return result;
+  }, [orders, searchQuery]);
 
   if (isLoading) {
     return <LoadingState />;
@@ -234,33 +378,69 @@ function QueueTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">
-          คิวกำลังทำ ({orders.length} รายการ)
+          คิวกำลังทำ ({filteredOrders.length}{searchQuery && ` / ${orders.length}`} รายการ)
         </h2>
+        <span className="text-xs text-gray-500">เรียงตามคิว (FIFO)</span>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {orders.map((order) => (
-          <OrderCard
-            key={order.id}
-            order={order}
-            showQueueNumber
-            actions={
-              <button
-                onClick={() => completeOrder.mutate(order.id)}
-                disabled={completeOrder.isPending}
-                className="w-full px-4 py-3 text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors disabled:opacity-50"
-              >
-                เสร็จสิ้น - เรียกรับอาหาร
-              </button>
-            }
-          />
-        ))}
-      </div>
+
+      {filteredOrders.length === 0 && searchQuery ? (
+        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+          <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <p className="text-gray-500">ไม่พบออเดอร์ที่ตรงกับการค้นหา</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredOrders.map((order) => (
+            <OrderCard
+              key={order.id}
+              order={order}
+              showQueueNumber
+              actions={
+                <button
+                  onClick={() => completeOrder.mutate(order.id)}
+                  disabled={completeOrder.isPending}
+                  className="w-full px-4 py-3 text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  เสร็จสิ้น - เรียกรับอาหาร
+                </button>
+              }
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function CompletedTab() {
+function CompletedTab({ searchQuery }: TabProps) {
   const { data: orders, isLoading, error } = useCompletedOrders();
+
+  // Filter orders (most recent first for completed)
+  const filteredOrders = useMemo(() => {
+    if (!orders) return [];
+    let result = [...orders];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(order =>
+        order.id.toLowerCase().includes(query) ||
+        order.customer_name.toLowerCase().includes(query) ||
+        (order.queue_number && order.queue_number.toString().includes(query))
+      );
+    }
+
+    // Sort by completed time (most recent first for history)
+    result.sort((a, b) => {
+      const timeA = a.completed_at ? new Date(a.completed_at).getTime() : 0;
+      const timeB = b.completed_at ? new Date(b.completed_at).getTime() : 0;
+      return timeB - timeA;
+    });
+
+    return result;
+  }, [orders, searchQuery]);
 
   if (isLoading) {
     return <LoadingState />;
@@ -288,14 +468,25 @@ function CompletedTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">
-          เสร็จสิ้นวันนี้ ({orders.length} รายการ)
+          เสร็จสิ้นวันนี้ ({filteredOrders.length}{searchQuery && ` / ${orders.length}`} รายการ)
         </h2>
+        <span className="text-xs text-gray-500">เรียงจากล่าสุด</span>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {orders.map((order) => (
-          <OrderCard key={order.id} order={order} showQueueNumber completed />
-        ))}
-      </div>
+
+      {filteredOrders.length === 0 && searchQuery ? (
+        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+          <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <p className="text-gray-500">ไม่พบออเดอร์ที่ตรงกับการค้นหา</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredOrders.map((order) => (
+            <OrderCard key={order.id} order={order} showQueueNumber completed />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -463,6 +654,138 @@ function getTimeAgo(date: Date): string {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+interface ConfirmModalProps {
+  title: string;
+  message: string;
+  order: Order;
+  confirmText: string;
+  confirmStyle: 'success' | 'danger';
+  onConfirm: () => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}
+
+function ConfirmModal({
+  title,
+  message,
+  order,
+  confirmText,
+  confirmStyle,
+  onConfirm,
+  onCancel,
+  isLoading,
+}: ConfirmModalProps) {
+  const createdAt = new Date(order.created_at);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50"
+        onClick={onCancel}
+      />
+
+      {/* Modal */}
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        {/* Header */}
+        <div className={`px-6 py-4 ${confirmStyle === 'success' ? 'bg-green-50' : 'bg-red-50'}`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              confirmStyle === 'success' ? 'bg-green-100' : 'bg-red-100'
+            }`}>
+              {confirmStyle === 'success' ? (
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              )}
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+              <p className="text-sm text-gray-500">{message}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Order Details */}
+        <div className="px-6 py-4 space-y-3">
+          {/* Order ID and Customer */}
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs text-gray-500">Order ID</span>
+              <p className="text-lg font-bold text-gray-900">{order.id}</p>
+            </div>
+            <div className="text-right">
+              <span className="text-xs text-gray-500">ลูกค้า</span>
+              <p className="font-medium text-gray-900">{order.customer_name}</p>
+            </div>
+          </div>
+
+          {/* Items */}
+          <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+            <span className="text-xs text-gray-500 font-medium">รายการสินค้า</span>
+            {order.items.map((item, index) => (
+              <div key={index} className="flex justify-between text-sm">
+                <span className="text-gray-600">
+                  {item.name} x{item.quantity}
+                </span>
+                <span className="text-gray-900">{formatPrice(item.price * item.quantity)}</span>
+              </div>
+            ))}
+            <div className="pt-2 border-t border-gray-200 flex justify-between">
+              <span className="font-medium text-gray-900">รวมทั้งหมด</span>
+              <span className="font-bold text-lg text-orange-600">{formatPrice(order.total_amount)}</span>
+            </div>
+          </div>
+
+          {/* Time */}
+          <div className="flex items-center gap-1 text-xs text-gray-400">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>สร้างเมื่อ {createdAt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="px-6 py-4 bg-gray-50 flex gap-3">
+          <button
+            onClick={onCancel}
+            disabled={isLoading}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            ยกเลิก
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className={`flex-1 px-4 py-2.5 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${
+              confirmStyle === 'success'
+                ? 'bg-green-500 hover:bg-green-600'
+                : 'bg-red-500 hover:bg-red-600'
+            }`}
+          >
+            {isLoading ? (
+              <>
+                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                <span>กำลังดำเนินการ...</span>
+              </>
+            ) : (
+              confirmText
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function StaffDashboard() {
