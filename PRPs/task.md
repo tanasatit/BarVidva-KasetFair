@@ -90,23 +90,26 @@ Complete customer-facing order creation flow for Bar vidva's Kaset Fair 2026 foo
   - [x] Log expiry events for analytics (using zerolog)
 
 #### Admin Dashboard Enhancements
-- [ ] **Orders Table Improvements**
-  - [ ] Add search by order ID or customer name
-  - [ ] Add sort options (date, amount, status)
-  - [ ] Add filter by status
-  - [ ] Add filter by customer name ("select user")
-  - [ ] Implement pagination (10 items per page)
-  - [ ] Backend: Add pagination, search, filter query params to API
+- [x] **Admin Login Redesign** ✅
+  - [x] Redesigned admin login page to match orange/amber color scheme of other pages
+- [x] **Orders Table Improvements** ✅
+  - [x] Add search by order ID or customer name
+  - [x] Add sort options (date, amount, status)
+  - [x] Add filter by status
+  - [x] Add filter by customer name ("select user")
+  - [x] Implement pagination (10 items per page)
+  - [x] Client-side implementation (no backend changes needed for current data volume)
 
-#### Staff Dashboard Enhancements
-- [ ] **Waiting Payment Tab**
-  - [ ] Add confirmation modal for "Verify Payment" action
-  - [ ] Add confirmation modal for "Cancel Order" action
-  - [ ] Show order details in modal before confirming
-- [ ] **General Improvements**
-  - [ ] Add search by order ID across all tabs
-  - [ ] Add filter options
-  - [ ] Ensure oldest-first sorting (verify FIFO)
+#### Staff Dashboard Enhancements ✅
+- [x] **Waiting Payment Tab**
+  - [x] Add confirmation modal for "Verify Payment" action
+  - [x] Add confirmation modal for "Cancel Order" action
+  - [x] Show order details in modal before confirming
+- [x] **General Improvements**
+  - [x] Add search by order ID/customer name across all tabs
+  - [x] Search works on pending, queue, and completed tabs
+  - [x] Oldest-first sorting (FIFO) for pending and queue tabs
+  - [x] Most recent first for completed tab (history view)
 
 #### Testing
 - [x] Backend unit tests (Go) - handlers, services, utils
