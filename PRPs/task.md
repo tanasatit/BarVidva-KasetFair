@@ -110,6 +110,12 @@ Complete customer-facing order creation flow for Bar vidva's Kaset Fair 2026 foo
   - [x] Search works on pending, queue, and completed tabs
   - [x] Oldest-first sorting (FIFO) for pending and queue tabs
   - [x] Most recent first for completed tab (history view)
+- [x] **Split View Mode** ✅
+  - [x] Toggle button in header to switch between split/tab view
+  - [x] Side-by-side display: รอชำระเงิน (left) | คิวกำลังทำ (right)
+  - [x] Compact order cards optimized for split view
+  - [x] Scrollable panels with fixed height
+  - [x] Link to view completed orders in tab mode
 
 #### Testing
 - [x] Backend unit tests (Go) - handlers, services, utils

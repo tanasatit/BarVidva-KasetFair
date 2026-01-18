@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { StaffProvider, useStaffAuth } from '@/context/StaffContext';
 import { StaffLogin } from '@/components/StaffLogin';
 import {
@@ -15,10 +16,32 @@ import { formatPrice } from '@/utils/orderUtils';
 type TabType = 'pending' | 'queue' | 'completed';
 type ModalType = 'verify' | 'cancel' | null;
 
+type ViewMode = 'tabs' | 'split';
+
+const STAFF_VIEW_MODE_KEY = 'staff-dashboard-view-mode';
+const STAFF_TAB_KEY = 'staff-dashboard-tab';
+
 function StaffDashboardContent() {
   const { isAuthenticated, isLoading: authLoading, logout } = useStaffAuth();
-  const [activeTab, setActiveTab] = useState<TabType>('pending');
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const saved = localStorage.getItem(STAFF_TAB_KEY);
+    return (saved as TabType) || 'pending';
+  });
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem(STAFF_VIEW_MODE_KEY);
+    return (saved as ViewMode) || 'split';
+  });
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Persist state
+  useEffect(() => {
+    localStorage.setItem(STAFF_VIEW_MODE_KEY, viewMode);
+  }, [viewMode]);
+
+  useEffect(() => {
+    localStorage.setItem(STAFF_TAB_KEY, activeTab);
+  }, [activeTab]);
 
   if (authLoading) {
     return (
@@ -48,69 +71,115 @@ function StaffDashboardContent() {
                 <p className="text-sm text-gray-500">Bar Vidva - Kaset Fair</p>
               </div>
             </div>
-            <button
-              onClick={logout}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <div className="flex items-center gap-2">
+              {/* View Mode Toggle */}
+              <div className="hidden sm:flex items-center bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('split')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'split'
+                      ? 'bg-white text-orange-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  title="แบ่ง 2 ฝั่ง"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                  </svg>
+                  <span className="hidden md:inline">แบ่งจอ</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('tabs')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'tabs'
+                      ? 'bg-white text-orange-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  title="แท็บเดียว"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                  <span className="hidden md:inline">แท็บ</span>
+                </button>
+              </div>
+              {/* Admin Dashboard Button */}
+              <button
+                onClick={() => navigate('/admin')}
+                className="flex items-center gap-2 px-4 py-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-              <span className="hidden sm:inline">ออกจากระบบ</span>
-            </button>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="hidden sm:inline">Admin</span>
+              </button>
+              <button
+                onClick={logout}
+                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+                <span className="hidden sm:inline">ออกจากระบบ</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Tab Navigation */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4">
-          <nav className="flex gap-1 overflow-x-auto">
-            <TabButton
-              active={activeTab === 'pending'}
-              onClick={() => setActiveTab('pending')}
-              icon={
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              }
-              label="รอชำระเงิน"
-            />
-            <TabButton
-              active={activeTab === 'queue'}
-              onClick={() => setActiveTab('queue')}
-              icon={
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-              }
-              label="คิวกำลังทำ"
-            />
-            <TabButton
-              active={activeTab === 'completed'}
-              onClick={() => setActiveTab('completed')}
-              icon={
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              }
-              label="เสร็จสิ้น"
-            />
-          </nav>
+      {/* Tab Navigation - Only show in tabs mode */}
+      {viewMode === 'tabs' && (
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4">
+            <nav className="flex gap-1 overflow-x-auto">
+              <TabButton
+                active={activeTab === 'pending'}
+                onClick={() => setActiveTab('pending')}
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                }
+                label="รอชำระเงิน"
+              />
+              <TabButton
+                active={activeTab === 'queue'}
+                onClick={() => setActiveTab('queue')}
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                }
+                label="คิวกำลังทำ"
+              />
+              <TabButton
+                active={activeTab === 'completed'}
+                onClick={() => setActiveTab('completed')}
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                }
+                label="เสร็จสิ้น"
+              />
+            </nav>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Search Bar */}
-      <div className="max-w-7xl mx-auto px-4 pt-4">
+      <div className={`${viewMode === 'split' ? 'max-w-full' : 'max-w-7xl'} mx-auto px-4 pt-4`}>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,12 +206,63 @@ function StaffDashboardContent() {
         </div>
       </div>
 
-      {/* Tab Content */}
-      <main className="max-w-7xl mx-auto px-4 py-4">
-        {activeTab === 'pending' && <PendingTab searchQuery={searchQuery} />}
-        {activeTab === 'queue' && <QueueTab searchQuery={searchQuery} />}
-        {activeTab === 'completed' && <CompletedTab searchQuery={searchQuery} />}
-      </main>
+      {/* Content Area */}
+      {viewMode === 'split' ? (
+        /* Split View - Side by Side */
+        <main className="px-4 py-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Left Panel - Pending Orders */}
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="bg-amber-50 border-b border-amber-100 px-4 py-3 flex items-center gap-2">
+                <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h2 className="font-semibold text-amber-800">รอชำระเงิน</h2>
+              </div>
+              <div className="p-4 max-h-[calc(100vh-220px)] overflow-y-auto">
+                <PendingTabCompact searchQuery={searchQuery} />
+              </div>
+            </div>
+
+            {/* Right Panel - Queue Orders */}
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="bg-blue-50 border-b border-blue-100 px-4 py-3 flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                </div>
+                <h2 className="font-semibold text-blue-800">คิวกำลังทำ</h2>
+              </div>
+              <div className="p-4 max-h-[calc(100vh-220px)] overflow-y-auto">
+                <QueueTabCompact searchQuery={searchQuery} />
+              </div>
+            </div>
+          </div>
+
+          {/* Completed Orders Link */}
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => setViewMode('tabs')}
+              className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              ดูออเดอร์เสร็จสิ้น
+            </button>
+          </div>
+        </main>
+      ) : (
+        /* Tab View */
+        <main className="max-w-7xl mx-auto px-4 py-4">
+          {activeTab === 'pending' && <PendingTab searchQuery={searchQuery} />}
+          {activeTab === 'queue' && <QueueTab searchQuery={searchQuery} />}
+          {activeTab === 'completed' && <CompletedTab searchQuery={searchQuery} />}
+        </main>
+      )}
     </div>
   );
 }
@@ -487,6 +607,219 @@ function CompletedTab({ searchQuery }: TabProps) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// Compact versions for split view
+function PendingTabCompact({ searchQuery }: TabProps) {
+  const { data: orders, isLoading, error } = usePendingOrders();
+  const verifyPayment = useVerifyPayment();
+  const cancelOrder = useCancelOrder();
+  const [modalState, setModalState] = useState<{ type: ModalType; order: Order | null }>({
+    type: null,
+    order: null,
+  });
+
+  const filteredOrders = useMemo(() => {
+    if (!orders) return [];
+    let result = [...orders];
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(order =>
+        order.id.toLowerCase().includes(query) ||
+        order.customer_name.toLowerCase().includes(query)
+      );
+    }
+    result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    return result;
+  }, [orders, searchQuery]);
+
+  const handleVerifyClick = (order: Order) => setModalState({ type: 'verify', order });
+  const handleCancelClick = (order: Order) => setModalState({ type: 'cancel', order });
+  const handleConfirmVerify = () => {
+    if (modalState.order) {
+      verifyPayment.mutate(modalState.order.id, {
+        onSuccess: () => setModalState({ type: null, order: null }),
+      });
+    }
+  };
+  const handleConfirmCancel = () => {
+    if (modalState.order) {
+      cancelOrder.mutate(modalState.order.id, {
+        onSuccess: () => setModalState({ type: null, order: null }),
+      });
+    }
+  };
+  const closeModal = () => setModalState({ type: null, order: null });
+
+  if (isLoading) return <div className="text-center py-8 text-gray-500">กำลังโหลด...</div>;
+  if (error) return <div className="text-center py-8 text-red-500">เกิดข้อผิดพลาด</div>;
+
+  if (!orders || orders.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <svg className="w-12 h-12 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p className="text-gray-500 text-sm">ไม่มีออเดอร์รอชำระ</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-sm text-gray-600">{filteredOrders.length} รายการ</span>
+        <span className="text-xs text-gray-400">FIFO</span>
+      </div>
+      <div className="space-y-3">
+        {filteredOrders.map((order) => (
+          <CompactOrderCard
+            key={order.id}
+            order={order}
+            variant="pending"
+            actions={
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => handleCancelClick(order)}
+                  className="flex-1 px-2 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={() => handleVerifyClick(order)}
+                  className="flex-1 px-2 py-1.5 text-xs font-medium text-white bg-green-500 hover:bg-green-600 rounded-lg transition-colors"
+                >
+                  ยืนยัน
+                </button>
+              </div>
+            }
+          />
+        ))}
+      </div>
+
+      {modalState.type === 'verify' && modalState.order && (
+        <ConfirmModal
+          title="ยืนยันการชำระเงิน"
+          message="คุณต้องการยืนยันการชำระเงินสำหรับออเดอร์นี้หรือไม่?"
+          order={modalState.order}
+          confirmText="ยืนยันชำระเงิน"
+          confirmStyle="success"
+          onConfirm={handleConfirmVerify}
+          onCancel={closeModal}
+          isLoading={verifyPayment.isPending}
+        />
+      )}
+      {modalState.type === 'cancel' && modalState.order && (
+        <ConfirmModal
+          title="ยกเลิกออเดอร์"
+          message="คุณต้องการยกเลิกออเดอร์นี้หรือไม่?"
+          order={modalState.order}
+          confirmText="ยืนยันยกเลิก"
+          confirmStyle="danger"
+          onConfirm={handleConfirmCancel}
+          onCancel={closeModal}
+          isLoading={cancelOrder.isPending}
+        />
+      )}
+    </>
+  );
+}
+
+function QueueTabCompact({ searchQuery }: TabProps) {
+  const { data: orders, isLoading, error } = useQueueOrders();
+  const completeOrder = useCompleteOrder();
+
+  const filteredOrders = useMemo(() => {
+    if (!orders) return [];
+    let result = [...orders];
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(order =>
+        order.id.toLowerCase().includes(query) ||
+        order.customer_name.toLowerCase().includes(query) ||
+        (order.queue_number && order.queue_number.toString().includes(query))
+      );
+    }
+    result.sort((a, b) => (a.queue_number || 0) - (b.queue_number || 0));
+    return result;
+  }, [orders, searchQuery]);
+
+  if (isLoading) return <div className="text-center py-8 text-gray-500">กำลังโหลด...</div>;
+  if (error) return <div className="text-center py-8 text-red-500">เกิดข้อผิดพลาด</div>;
+
+  if (!orders || orders.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <svg className="w-12 h-12 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+        <p className="text-gray-500 text-sm">ไม่มีออเดอร์ในคิว</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-sm text-gray-600">{filteredOrders.length} รายการ</span>
+        <span className="text-xs text-gray-400">ตามคิว</span>
+      </div>
+      <div className="space-y-3">
+        {filteredOrders.map((order) => (
+          <CompactOrderCard
+            key={order.id}
+            order={order}
+            variant="queue"
+            actions={
+              <button
+                onClick={() => completeOrder.mutate(order.id)}
+                disabled={completeOrder.isPending}
+                className="w-full mt-2 px-3 py-2 text-xs font-medium text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors disabled:opacity-50"
+              >
+                เสร็จสิ้น
+              </button>
+            }
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+interface CompactOrderCardProps {
+  order: Order;
+  variant: 'pending' | 'queue';
+  actions?: React.ReactNode;
+}
+
+function CompactOrderCard({ order, variant, actions }: CompactOrderCardProps) {
+  const timeAgo = getTimeAgo(new Date(order.created_at));
+
+  return (
+    <div className="bg-gray-50 rounded-lg p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-gray-900">{order.id}</span>
+            {variant === 'queue' && order.queue_number && (
+              <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-bold rounded-full">
+                #{order.queue_number}
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-gray-600 truncate">{order.customer_name}</p>
+        </div>
+        <div className="text-right">
+          <p className="font-semibold text-orange-600">{formatPrice(order.total_amount)}</p>
+          <p className="text-xs text-gray-400">{timeAgo}</p>
+        </div>
+      </div>
+      <div className="mt-2 text-xs text-gray-500">
+        {order.items.map(i => `${i.name} x${i.quantity}`).join(', ')}
+      </div>
+      {actions}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMenu } from '@/hooks/useMenu';
+import { useAllMenu } from '@/hooks/useMenu';
 import { useOfflineOrder, useOnlineStatus } from '@/hooks/useOffline';
 import { MenuSelector } from '@/components/MenuSelector';
 import { NameInput } from '@/components/NameInput';
@@ -22,7 +22,7 @@ export function CustomerOrder() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: menuItems, isLoading, isError: menuError } = useMenu();
+  const { data: menuItems, isLoading, isError: menuError } = useAllMenu();
   const { submitOrder, isSyncing } = useOfflineOrder();
   const onlineStatus = useOnlineStatus();
 
@@ -236,7 +236,7 @@ export function CustomerOrder() {
         )}
 
         {/* Menu selection */}
-        <MenuSelector items={menuItems} cart={cart} onUpdateCart={setCart} />
+        <MenuSelector items={menuItems} cart={cart} onUpdateCart={setCart} showUnavailable />
 
         {/* Name input */}
         <NameInput

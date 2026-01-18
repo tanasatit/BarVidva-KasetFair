@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminProvider, useAdminAuth } from '@/context/AdminContext';
 import { StaffProvider } from '@/context/StaffContext';
@@ -23,10 +23,20 @@ import { formatPrice } from '@/utils/orderUtils';
 
 type TabType = 'overview' | 'menu' | 'orders';
 
+const ADMIN_TAB_STORAGE_KEY = 'admin-dashboard-tab';
+
 function AdminDashboardContent() {
   const { isAuthenticated, isLoading: authLoading, logout } = useAdminAuth();
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const saved = localStorage.getItem(ADMIN_TAB_STORAGE_KEY);
+    return (saved as TabType) || 'overview';
+  });
   const navigate = useNavigate();
+
+  // Persist tab state
+  useEffect(() => {
+    localStorage.setItem(ADMIN_TAB_STORAGE_KEY, activeTab);
+  }, [activeTab]);
 
   if (authLoading) {
     return (
@@ -916,10 +926,10 @@ function OrdersTab() {
   }, [pendingOrders, queueOrders, completedOrders]);
 
   // Get unique customers for filter dropdown
-  const uniqueCustomers = useMemo(() => {
-    const customers = new Set(allOrders.map(order => order.customer_name));
-    return Array.from(customers).sort();
-  }, [allOrders]);
+  // const uniqueCustomers = useMemo(() => {
+  //   const customers = new Set(allOrders.map(order => order.customer_name));
+  //   return Array.from(customers).sort();
+  // }, [allOrders]);
 
   // Filter and sort orders
   const filteredOrders = useMemo(() => {
@@ -985,10 +995,10 @@ function OrdersTab() {
     setCurrentPage(1);
   };
 
-  const handleCustomerFilterChange = (value: string) => {
-    setCustomerFilter(value);
-    setCurrentPage(1);
-  };
+  // const handleCustomerFilterChange = (value: string) => {
+  //   setCustomerFilter(value);
+  //   setCurrentPage(1);
+  // };
 
   const handleSortChange = (value: SortOption) => {
     setSortBy(value);
@@ -1077,7 +1087,7 @@ function OrdersTab() {
           </div>
 
           {/* Customer Filter */}
-          <div className="flex items-center gap-2">
+          {/* <div className="flex items-center gap-2">
             <label className="text-sm text-gray-500">ลูกค้า:</label>
             <select
               value={customerFilter}
@@ -1089,7 +1099,7 @@ function OrdersTab() {
                 <option key={customer} value={customer}>{customer}</option>
               ))}
             </select>
-          </div>
+          </div> */}
 
           {/* Clear Filters */}
           {hasActiveFilters && (
