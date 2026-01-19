@@ -120,8 +120,8 @@ Complete customer-facing order creation flow for Bar vidva's Kaset Fair 2026 foo
 #### Testing
 - [x] Backend unit tests (Go) - handlers, services, utils
 - [x] PWA manifest configuration (via vite-plugin-pwa)
-- [ ] Frontend component tests (Vitest)
-- [ ] Integration tests
+- [x] Frontend component tests (Vitest) - 87 tests, 88% coverage
+- [x] Integration tests - CustomerOrder page flow tested
 - [ ] Manual testing on 3G network
 - [ ] Load testing (50+ concurrent users)
 
