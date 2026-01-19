@@ -328,9 +328,9 @@ function OrderSearchForm({
           id="orderId"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder="เช่น 1001"
+          placeholder="เช่น 1001001"
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-center text-2xl font-mono tracking-wider"
-          maxLength={4}
+          maxLength={6}
           autoComplete="off"
         />
       </div>

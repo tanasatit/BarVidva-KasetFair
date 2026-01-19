@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { orderApi } from '@/services/api';
 import {
   savePendingOrder,
@@ -52,6 +52,10 @@ export function useOfflineOrder() {
   const isOnline = useOnlineStatus();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  // Ref to track previous online status for detecting offline → online transition
+  const wasOnlineRef = useRef<boolean | null>(null);
+  // Ref to prevent concurrent sync operations
+  const isSyncingRef = useRef(false);
 
   // Submit an order - works online or offline
   const submitOrder = useCallback(
@@ -81,10 +85,12 @@ export function useOfflineOrder() {
     synced: Order[];
     failed: PendingOrder[];
   }> => {
-    if (!isOnline) {
+    // Prevent concurrent sync operations
+    if (!isOnline || isSyncingRef.current) {
       return { synced: [], failed: [] };
     }
 
+    isSyncingRef.current = true;
     setIsSyncing(true);
     setSyncError(null);
 
@@ -97,7 +103,8 @@ export function useOfflineOrder() {
       for (const pending of pendingOrders) {
         try {
           const order = await orderApi.create(pending.orderData);
-          await markOrderSynced(order);
+          // Pass the temp ID so we delete the correct pending order from IndexedDB
+          await markOrderSynced(pending.id, order);
           synced.push(order);
         } catch (error) {
           // Update retry count
@@ -114,15 +121,21 @@ export function useOfflineOrder() {
     } catch (error) {
       setSyncError(error instanceof Error ? error.message : 'Sync failed');
     } finally {
+      isSyncingRef.current = false;
       setIsSyncing(false);
     }
 
     return { synced, failed };
   }, [isOnline]);
 
-  // Auto-sync when coming back online
+  // Auto-sync when coming back online (from offline → online transition)
   useEffect(() => {
-    if (isOnline) {
+    const wasOnline = wasOnlineRef.current;
+    wasOnlineRef.current = isOnline;
+
+    // Only sync when transitioning from offline to online
+    // Skip on first render (wasOnline === null) to prevent sync on every page load
+    if (isOnline && wasOnline === false) {
       // Check if we have pending orders and sync them
       hasPendingOrders().then((hasPending) => {
         if (hasPending) {
@@ -130,7 +143,10 @@ export function useOfflineOrder() {
         }
       });
     }
-  }, [isOnline, syncPendingOrders]);
+    // Note: syncPendingOrders is intentionally excluded from deps to prevent
+    // re-running on every render. The ref guards against concurrent syncs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline]);
 
   return {
     isOnline,

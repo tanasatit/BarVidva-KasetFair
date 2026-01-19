@@ -1,29 +1,28 @@
 import { useState } from 'react';
-import { useMenu } from '@/hooks/useMenu';
+import { useNavigate } from 'react-router-dom';
+import { useAllMenu } from '@/hooks/useMenu';
 import { useOfflineOrder, useOnlineStatus } from '@/hooks/useOffline';
 import { MenuSelector } from '@/components/MenuSelector';
 import { NameInput } from '@/components/NameInput';
 import { OrderSummary } from '@/components/OrderSummary';
-import { PaymentInfo } from '@/components/PaymentInfo';
-import type { CartItem, Order } from '@/types/api';
+import type { CartItem } from '@/types/api';
 import type { PendingOrder } from '@/services/offline';
 import {
-  generateOrderId,
-  getCurrentDay,
+  getCurrentDateKey,
   validateCustomerName,
   cartToOrderItems,
   calculateTotal,
 } from '@/utils/orderUtils';
 
 export function CustomerOrder() {
+  const navigate = useNavigate();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerName, setCustomerName] = useState('');
-  const [submittedOrder, setSubmittedOrder] = useState<Order | null>(null);
   const [pendingOrder, setPendingOrder] = useState<PendingOrder | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: menuItems, isLoading, isError: menuError } = useMenu();
+  const { data: menuItems, isLoading, isError: menuError } = useAllMenu();
   const { submitOrder, isSyncing } = useOfflineOrder();
   const onlineStatus = useOnlineStatus();
 
@@ -44,19 +43,18 @@ export function CustomerOrder() {
     setIsSubmitting(true);
 
     try {
-      const day = getCurrentDay();
-      const orderId = generateOrderId(day);
+      const dateKey = getCurrentDateKey();
 
+      // Server assigns sequential order ID
       const result = await submitOrder({
-        id: orderId,
         customer_name: customerName.trim(),
         items: cartToOrderItems(cart),
-        day,
+        date_key: dateKey,
       });
 
       if (result.order) {
-        // Order was submitted online
-        setSubmittedOrder(result.order);
+        // Order was submitted online - redirect to payment page
+        navigate(`/payment/${result.order.id}`);
       } else if (result.pending) {
         // Order was saved offline
         setPendingOrder(result.pending);
@@ -70,30 +68,10 @@ export function CustomerOrder() {
 
   // Reset to new order
   const handleNewOrder = () => {
-    setSubmittedOrder(null);
     setPendingOrder(null);
     setCart([]);
     setCustomerName('');
   };
-
-  // Show payment info after successful order
-  if (submittedOrder) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-6 px-4">
-        <div className="max-w-md mx-auto">
-          <PaymentInfo order={submittedOrder} />
-
-          <button
-            type="button"
-            onClick={handleNewOrder}
-            className="w-full mt-6 py-3 px-4 rounded-lg border-2 border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition-colors"
-          >
-            สั่งซื้อเพิ่ม
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   // Show offline order confirmation
   if (pendingOrder) {
@@ -238,7 +216,7 @@ export function CustomerOrder() {
         )}
 
         {/* Menu selection */}
-        <MenuSelector items={menuItems} cart={cart} onUpdateCart={setCart} />
+        <MenuSelector items={menuItems} cart={cart} onUpdateCart={setCart} showUnavailable />
 
         {/* Name input */}
         <NameInput

@@ -12,17 +12,11 @@ export function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-      {/* Animated background */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-1000" />
-      </div>
-
-      <div className="w-full max-w-md relative z-10">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
         {/* Logo/Brand Section */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-2xl shadow-2xl mb-4">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-orange-500 rounded-2xl shadow-lg mb-4">
             <svg
               className="w-10 h-10 text-white"
               fill="none"
@@ -37,29 +31,29 @@ export function AdminLogin() {
               />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-white">Admin Portal</h1>
-          <p className="text-gray-400 mt-1">Bar Vidva - Kaset Fair 2026</p>
+          <h1 className="text-2xl font-bold text-gray-900">Admin Portal</h1>
+          <p className="text-gray-600 mt-1">Bar Vidva - Kaset Fair 2026</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20">
+        <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="mb-6">
-            <h2 className="text-xl font-semibold text-white">เข้าสู่ระบบผู้ดูแล</h2>
-            <p className="text-gray-400 text-sm mt-1">กรุณากรอกรหัสผ่านเพื่อเข้าใช้งาน</p>
+            <h2 className="text-xl font-semibold text-gray-900">เข้าสู่ระบบผู้ดูแล</h2>
+            <p className="text-gray-500 text-sm mt-1">กรุณากรอกรหัสผ่านเพื่อเข้าใช้งาน</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-300 mb-2"
+                className="block text-sm font-medium text-gray-700 mb-2"
               >
                 รหัสผ่าน Admin
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <svg
-                    className="w-5 h-5 text-gray-500"
+                    className="w-5 h-5 text-gray-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -77,7 +71,7 @@ export function AdminLogin() {
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-white placeholder-gray-500 text-lg"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors text-lg"
                   placeholder="Enter admin password"
                   disabled={isLoading}
                   autoFocus
@@ -86,7 +80,7 @@ export function AdminLogin() {
             </div>
 
             {error && (
-              <div className="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl flex items-center gap-2">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2">
                 <svg
                   className="w-5 h-5 flex-shrink-0"
                   fill="none"
@@ -107,7 +101,7 @@ export function AdminLogin() {
             <button
               type="submit"
               disabled={isLoading || !password.trim()}
-              className="w-full bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-lg shadow-lg hover:shadow-purple-500/25"
+              className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-lg"
             >
               {isLoading ? (
                 <>

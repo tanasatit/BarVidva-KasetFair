@@ -35,14 +35,14 @@ export interface Order {
   paid_at?: string;
   completed_at?: string;
   queue_number?: number;
-  day: number;
+  date_key: number;
 }
 
 export interface CreateOrderRequest {
-  id: string;
+  id?: string; // Optional - server generates sequential ID
   customer_name: string;
   items: OrderItem[];
-  day: number;
+  date_key: number;
 }
 
 export interface ApiError {

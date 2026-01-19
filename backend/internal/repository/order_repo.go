@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/tanasatit/barvidva-kasetfair/internal/models"
@@ -14,13 +15,14 @@ type OrderRepository interface {
 	Create(ctx context.Context, order *models.Order) error
 	GetByID(ctx context.Context, id string) (*models.Order, error)
 	CheckDuplicateID(ctx context.Context, id string) (bool, error)
-	GetNextSequence(ctx context.Context, day int) (int, error)
+	GetNextSequence(ctx context.Context, dateKey int) (int, error)
 	GetByStatus(ctx context.Context, status models.OrderStatus) ([]models.Order, error)
 	GetByStatuses(ctx context.Context, statuses []models.OrderStatus) ([]models.Order, error)
 	UpdateStatus(ctx context.Context, id string, status models.OrderStatus) error
 	VerifyPayment(ctx context.Context, id string, queueNumber int) error
 	CompleteOrder(ctx context.Context, id string) error
-	GetNextQueueNumber(ctx context.Context, day int) (int, error)
+	GetNextQueueNumber(ctx context.Context, dateKey int) (int, error)
+	ExpireOldOrders(ctx context.Context, cutoff time.Time) (int64, error)
 }
 
 type orderRepository struct {
@@ -45,7 +47,7 @@ func (r *orderRepository) Create(ctx context.Context, order *models.Order) error
 
 	// Insert order
 	query := `
-		INSERT INTO orders (id, customer_name, total_amount, status, day, created_at)
+		INSERT INTO orders (id, customer_name, total_amount, status, date_key, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`
 	_, err = tx.ExecContext(ctx, query,
@@ -53,7 +55,7 @@ func (r *orderRepository) Create(ctx context.Context, order *models.Order) error
 		order.CustomerName,
 		order.TotalAmount,
 		order.Status,
-		order.Day,
+		order.DateKey,
 		order.CreatedAt,
 	)
 	if err != nil {
@@ -96,15 +98,15 @@ func (r *orderRepository) CheckDuplicateID(ctx context.Context, id string) (bool
 	return exists, nil
 }
 
-// GetNextSequence gets the next sequence number for a given day
-func (r *orderRepository) GetNextSequence(ctx context.Context, day int) (int, error) {
+// GetNextSequence gets the next sequence number for a given date key (DDMM format)
+func (r *orderRepository) GetNextSequence(ctx context.Context, dateKey int) (int, error) {
 	var maxSeq sql.NullInt64
 	query := `
-		SELECT MAX(CAST(SUBSTRING(id, 2) AS INTEGER))
+		SELECT MAX(CAST(SUBSTRING(id, 5) AS INTEGER))
 		FROM orders
-		WHERE day = $1
+		WHERE date_key = $1
 	`
-	err := r.db.GetContext(ctx, &maxSeq, query, day)
+	err := r.db.GetContext(ctx, &maxSeq, query, dateKey)
 	if err != nil && err != sql.ErrNoRows {
 		return 0, fmt.Errorf("failed to get next sequence: %w", err)
 	}
@@ -260,15 +262,15 @@ func (r *orderRepository) CompleteOrder(ctx context.Context, id string) error {
 	return nil
 }
 
-// GetNextQueueNumber gets the next queue number for a given day
-func (r *orderRepository) GetNextQueueNumber(ctx context.Context, day int) (int, error) {
+// GetNextQueueNumber gets the next queue number for a given date key (DDMM format)
+func (r *orderRepository) GetNextQueueNumber(ctx context.Context, dateKey int) (int, error) {
 	var maxQueue sql.NullInt64
 	query := `
 		SELECT MAX(queue_number)
 		FROM orders
-		WHERE day = $1 AND queue_number IS NOT NULL
+		WHERE date_key = $1 AND queue_number IS NOT NULL
 	`
-	err := r.db.GetContext(ctx, &maxQueue, query, day)
+	err := r.db.GetContext(ctx, &maxQueue, query, dateKey)
 	if err != nil && err != sql.ErrNoRows {
 		return 0, fmt.Errorf("failed to get next queue number: %w", err)
 	}
@@ -278,4 +280,25 @@ func (r *orderRepository) GetNextQueueNumber(ctx context.Context, day int) (int,
 	}
 
 	return int(maxQueue.Int64) + 1, nil
+}
+
+// ExpireOldOrders cancels all orders in PENDING_PAYMENT status that were created before the cutoff time.
+// Returns the number of orders that were expired.
+func (r *orderRepository) ExpireOldOrders(ctx context.Context, cutoff time.Time) (int64, error) {
+	query := `
+		UPDATE orders
+		SET status = $1
+		WHERE status = $2 AND created_at < $3
+	`
+	result, err := r.db.ExecContext(ctx, query, models.OrderStatusCancelled, models.OrderStatusPendingPayment, cutoff)
+	if err != nil {
+		return 0, fmt.Errorf("failed to expire old orders: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	return rowsAffected, nil
 }

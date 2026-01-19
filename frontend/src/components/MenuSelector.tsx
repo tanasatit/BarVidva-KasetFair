@@ -6,6 +6,7 @@ interface MenuSelectorProps {
   items: MenuItem[];
   cart: CartItem[];
   onUpdateCart: (cart: CartItem[]) => void;
+  showUnavailable?: boolean;
 }
 
 function MenuItemImage({ imageUrl, name }: { imageUrl?: string; name: string }) {
@@ -24,13 +25,16 @@ function MenuItemImage({ imageUrl, name }: { imageUrl?: string; name: string }) 
   );
 }
 
-export function MenuSelector({ items, cart, onUpdateCart }: MenuSelectorProps) {
+export function MenuSelector({ items, cart, onUpdateCart, showUnavailable = false }: MenuSelectorProps) {
   const getQuantity = (itemId: number): number => {
     const cartItem = cart.find((item) => item.menu_item_id === itemId);
     return cartItem?.quantity || 0;
   };
 
   const updateQuantity = (menuItem: MenuItem, delta: number) => {
+    // Don't allow updates for unavailable items
+    if (!menuItem.available) return;
+
     const currentQty = getQuantity(menuItem.id);
     const newQty = Math.max(0, Math.min(10, currentQty + delta));
 
@@ -62,11 +66,16 @@ export function MenuSelector({ items, cart, onUpdateCart }: MenuSelectorProps) {
     }
   };
 
+  // Separate available and unavailable items
+  const availableItems = items.filter(item => item.available);
+  const unavailableItems = items.filter(item => !item.available);
+
   return (
     <div className="space-y-3">
       <h2 className="text-lg font-semibold text-gray-800">เลือกเมนู</h2>
       <div className="space-y-2">
-        {items.map((item) => {
+        {/* Available items */}
+        {availableItems.map((item) => {
           const quantity = getQuantity(item.id);
           return (
             <div
@@ -113,6 +122,33 @@ export function MenuSelector({ items, cart, onUpdateCart }: MenuSelectorProps) {
             </div>
           );
         })}
+
+        {/* Unavailable items (out of stock) */}
+        {showUnavailable && unavailableItems.length > 0 && (
+          <>
+            {unavailableItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center gap-3 p-3 rounded-xl border-2 border-gray-200 bg-gray-100 opacity-60"
+              >
+                <div className="relative">
+                  <MenuItemImage imageUrl={item.image_url} name={item.name} />
+                  <div className="absolute inset-0 bg-gray-500/30 rounded-lg" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-gray-500">{item.name}</h3>
+                  <p className="text-gray-400 font-semibold">
+                    {formatPrice(item.price)}
+                  </p>
+                </div>
+
+                <div className="px-3 py-1.5 bg-gray-300 text-gray-600 text-sm font-medium rounded-full">
+                  หมด
+                </div>
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );

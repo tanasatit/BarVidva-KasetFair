@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminProvider, useAdminAuth } from '@/context/AdminContext';
 import { StaffProvider } from '@/context/StaffContext';
@@ -23,10 +23,20 @@ import { formatPrice } from '@/utils/orderUtils';
 
 type TabType = 'overview' | 'menu' | 'orders';
 
+const ADMIN_TAB_STORAGE_KEY = 'admin-dashboard-tab';
+
 function AdminDashboardContent() {
   const { isAuthenticated, isLoading: authLoading, logout } = useAdminAuth();
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const saved = localStorage.getItem(ADMIN_TAB_STORAGE_KEY);
+    return (saved as TabType) || 'overview';
+  });
   const navigate = useNavigate();
+
+  // Persist tab state
+  useEffect(() => {
+    localStorage.setItem(ADMIN_TAB_STORAGE_KEY, activeTab);
+  }, [activeTab]);
 
   if (authLoading) {
     return (
@@ -893,21 +903,220 @@ function MenuItemForm({ initialData, onSubmit, onCancel, isLoading }: MenuItemFo
   );
 }
 
+type SortOption = 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'status';
+type StatusFilter = 'all' | 'PENDING_PAYMENT' | 'PAID' | 'COMPLETED' | 'CANCELLED';
+
+const ITEMS_PER_PAGE = 10;
+
 function OrdersTab() {
   const { data: pendingOrders } = usePendingOrders();
   const { data: queueOrders } = useQueueOrders();
   const { data: completedOrders } = useCompletedOrders();
 
-  const allOrders = [...(pendingOrders || []), ...(queueOrders || []), ...(completedOrders || [])]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  // Search, filter, sort, and pagination state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('date_desc');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [customerFilter, setCustomerFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Combine all orders
+  const allOrders = useMemo(() => {
+    return [...(pendingOrders || []), ...(queueOrders || []), ...(completedOrders || [])];
+  }, [pendingOrders, queueOrders, completedOrders]);
+
+  // Get unique customers for filter dropdown
+  // const uniqueCustomers = useMemo(() => {
+  //   const customers = new Set(allOrders.map(order => order.customer_name));
+  //   return Array.from(customers).sort();
+  // }, [allOrders]);
+
+  // Filter and sort orders
+  const filteredOrders = useMemo(() => {
+    let result = [...allOrders];
+
+    // Search filter (order ID or customer name)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(order =>
+        order.id.toLowerCase().includes(query) ||
+        order.customer_name.toLowerCase().includes(query)
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      result = result.filter(order => order.status === statusFilter);
+    }
+
+    // Customer filter
+    if (customerFilter !== 'all') {
+      result = result.filter(order => order.customer_name === customerFilter);
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'date_desc':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'date_asc':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'amount_desc':
+          return b.total_amount - a.total_amount;
+        case 'amount_asc':
+          return a.total_amount - b.total_amount;
+        case 'status':
+          const statusOrder = { PENDING_PAYMENT: 0, PAID: 1, COMPLETED: 2, CANCELLED: 3 };
+          return (statusOrder[a.status as keyof typeof statusOrder] || 4) -
+                 (statusOrder[b.status as keyof typeof statusOrder] || 4);
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [allOrders, searchQuery, statusFilter, customerFilter, sortBy]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredOrders.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredOrders, currentPage]);
+
+  // Reset to page 1 when filters change
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusFilterChange = (value: StatusFilter) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+
+  // const handleCustomerFilterChange = (value: string) => {
+  //   setCustomerFilter(value);
+  //   setCurrentPage(1);
+  // };
+
+  const handleSortChange = (value: SortOption) => {
+    setSortBy(value);
+    setCurrentPage(1);
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setCustomerFilter('all');
+    setSortBy('date_desc');
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = searchQuery || statusFilter !== 'all' || customerFilter !== 'all';
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gray-900">ออเดอร์ทั้งหมดวันนี้</h2>
-        <span className="text-gray-500">{allOrders.length} รายการ</span>
+        <span className="text-gray-500">{filteredOrders.length} / {allOrders.length} รายการ</span>
       </div>
 
+      {/* Search and Filters */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+        {/* Search Bar */}
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="ค้นหา Order ID หรือชื่อลูกค้า..."
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => handleSearchChange('')}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* Filter Row */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Sort */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-500">เรียงตาม:</label>
+            <select
+              value={sortBy}
+              onChange={(e) => handleSortChange(e.target.value as SortOption)}
+              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+            >
+              <option value="date_desc">ล่าสุด</option>
+              <option value="date_asc">เก่าสุด</option>
+              <option value="amount_desc">ยอดมาก → น้อย</option>
+              <option value="amount_asc">ยอดน้อย → มาก</option>
+              <option value="status">สถานะ</option>
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-500">สถานะ:</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => handleStatusFilterChange(e.target.value as StatusFilter)}
+              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+            >
+              <option value="all">ทั้งหมด</option>
+              <option value="PENDING_PAYMENT">รอชำระ</option>
+              <option value="PAID">กำลังทำ</option>
+              <option value="COMPLETED">เสร็จสิ้น</option>
+              <option value="CANCELLED">ยกเลิก</option>
+            </select>
+          </div>
+
+          {/* Customer Filter */}
+          {/* <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-500">ลูกค้า:</label>
+            <select
+              value={customerFilter}
+              onChange={(e) => handleCustomerFilterChange(e.target.value)}
+              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white max-w-[150px]"
+            >
+              <option value="all">ทั้งหมด</option>
+              {uniqueCustomers.map(customer => (
+                <option key={customer} value={customer}>{customer}</option>
+              ))}
+            </select>
+          </div> */}
+
+          {/* Clear Filters */}
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              ล้างตัวกรอง
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Orders Table */}
       {allOrders.length === 0 ? (
         <div className="text-center py-12">
           <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -915,46 +1124,139 @@ function OrdersTab() {
           </svg>
           <p className="text-gray-500">ยังไม่มีออเดอร์วันนี้</p>
         </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="text-left text-sm font-medium text-gray-500 px-4 py-3">Order ID</th>
-                  <th className="text-left text-sm font-medium text-gray-500 px-4 py-3">ลูกค้า</th>
-                  <th className="text-left text-sm font-medium text-gray-500 px-4 py-3">รายการ</th>
-                  <th className="text-right text-sm font-medium text-gray-500 px-4 py-3">ยอดรวม</th>
-                  <th className="text-center text-sm font-medium text-gray-500 px-4 py-3">สถานะ</th>
-                  <th className="text-right text-sm font-medium text-gray-500 px-4 py-3">เวลา</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allOrders.map((order) => (
-                  <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-900 font-medium">{order.id}</td>
-                    <td className="px-4 py-3 text-gray-600">{order.customer_name}</td>
-                    <td className="px-4 py-3 text-gray-500 text-sm">
-                      {order.items.map(i => `${i.name} x${i.quantity}`).join(', ')}
-                    </td>
-                    <td className="px-4 py-3 text-right text-orange-600 font-medium">
-                      {formatPrice(order.total_amount)}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <StatusBadge status={order.status} />
-                    </td>
-                    <td className="px-4 py-3 text-right text-gray-400 text-sm">
-                      {new Date(order.created_at).toLocaleTimeString('th-TH', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      ) : filteredOrders.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+          <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <p className="text-gray-500">ไม่พบออเดอร์ที่ตรงกับการค้นหา</p>
+          <button
+            onClick={clearFilters}
+            className="mt-3 text-orange-600 hover:text-orange-700 text-sm font-medium"
+          >
+            ล้างตัวกรอง
+          </button>
         </div>
+      ) : (
+        <>
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="text-left text-sm font-medium text-gray-500 px-4 py-3">Order ID</th>
+                    <th className="text-left text-sm font-medium text-gray-500 px-4 py-3">ลูกค้า</th>
+                    <th className="text-left text-sm font-medium text-gray-500 px-4 py-3">รายการ</th>
+                    <th className="text-right text-sm font-medium text-gray-500 px-4 py-3">ยอดรวม</th>
+                    <th className="text-center text-sm font-medium text-gray-500 px-4 py-3">สถานะ</th>
+                    <th className="text-right text-sm font-medium text-gray-500 px-4 py-3">เวลา</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedOrders.map((order) => (
+                    <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="px-4 py-3 text-gray-900 font-medium">{order.id}</td>
+                      <td className="px-4 py-3 text-gray-600">{order.customer_name}</td>
+                      <td className="px-4 py-3 text-gray-500 text-sm">
+                        {order.items.map(i => `${i.name} x${i.quantity}`).join(', ')}
+                      </td>
+                      <td className="px-4 py-3 text-right text-orange-600 font-medium">
+                        {formatPrice(order.total_amount)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <StatusBadge status={order.status} />
+                      </td>
+                      <td className="px-4 py-3 text-right text-gray-400 text-sm">
+                        {new Date(order.created_at).toLocaleTimeString('th-TH', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">
+                แสดง {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredOrders.length)} จาก {filteredOrders.length} รายการ
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="หน้าแรก"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="หน้าก่อน"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                {/* Page Numbers */}
+                <div className="flex items-center gap-1 mx-2">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(page => {
+                      // Show first, last, current, and adjacent pages
+                      return page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1;
+                    })
+                    .map((page, index, array) => (
+                      <span key={page} className="flex items-center">
+                        {index > 0 && array[index - 1] !== page - 1 && (
+                          <span className="px-1 text-gray-400">...</span>
+                        )}
+                        <button
+                          onClick={() => setCurrentPage(page)}
+                          className={`min-w-[32px] h-8 px-2 rounded-lg text-sm font-medium transition-colors ${
+                            currentPage === page
+                              ? 'bg-orange-500 text-white'
+                              : 'text-gray-600 hover:bg-gray-100'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      </span>
+                    ))}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="หน้าถัดไป"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="หน้าสุดท้าย"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

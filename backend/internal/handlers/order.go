@@ -262,7 +262,7 @@ func (h *OrderHandler) CreateOrder(c *fiber.Ctx) error {
 		Str("order_id", order.ID).
 		Str("customer_name", order.CustomerName).
 		Float64("total_amount", order.TotalAmount).
-		Int("day", order.Day).
+		Int("date_key", order.DateKey).
 		Msg("Order created successfully")
 
 	return c.Status(http.StatusCreated).JSON(order)

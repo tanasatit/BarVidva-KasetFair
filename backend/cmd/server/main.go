@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
@@ -68,17 +73,55 @@ func main() {
 	// Setup routes
 	setupRoutes(app, db, orderHandler, menuHandler, statsHandler)
 
+	// Setup context for graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Start order expiry service
+	expiryMinutes := getEnvInt("ORDER_EXPIRY_MINUTES", 60)
+	checkIntervalSeconds := getEnvInt("EXPIRY_CHECK_INTERVAL_SECONDS", 60)
+	expiryService := service.NewExpiryService(orderRepo, expiryMinutes, time.Duration(checkIntervalSeconds)*time.Second)
+	go expiryService.Start(ctx)
+
 	// Get port from environment
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
+	// Handle graceful shutdown
+	go func() {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		<-sigChan
+
+		log.Info().Msg("Received shutdown signal, shutting down gracefully...")
+		cancel() // Stop expiry service
+
+		if err := app.ShutdownWithTimeout(10 * time.Second); err != nil {
+			log.Error().Err(err).Msg("Error during server shutdown")
+		}
+	}()
+
 	// Start server
 	log.Info().Str("port", port).Msg("Starting server")
 	if err := app.Listen(":" + port); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start server")
 	}
+}
+
+// getEnvInt reads an integer from environment variable with a default value
+func getEnvInt(key string, defaultVal int) int {
+	val := os.Getenv(key)
+	if val == "" {
+		return defaultVal
+	}
+	intVal, err := strconv.Atoi(val)
+	if err != nil {
+		log.Warn().Str("key", key).Str("value", val).Msg("Invalid integer value, using default")
+		return defaultVal
+	}
+	return intVal
 }
 
 // customErrorHandler handles errors returned from handlers

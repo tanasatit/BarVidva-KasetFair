@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"context"
+	"time"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/tanasatit/barvidva-kasetfair/internal/models"
@@ -69,4 +70,9 @@ func (m *MockOrderRepository) CompleteOrder(ctx context.Context, id string) erro
 func (m *MockOrderRepository) GetNextQueueNumber(ctx context.Context, day int) (int, error) {
 	args := m.Called(ctx, day)
 	return args.Int(0), args.Error(1)
+}
+
+func (m *MockOrderRepository) ExpireOldOrders(ctx context.Context, cutoff time.Time) (int64, error) {
+	args := m.Called(ctx, cutoff)
+	return args.Get(0).(int64), args.Error(1)
 }

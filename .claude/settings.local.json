@@ -3,7 +3,8 @@
     "allow": [
       "Bash(./server)",
       "Bash(cat:*)",
-      "Bash(go test:*)"
+      "Bash(go test:*)",
+      "Bash(go build:*)"
     ]
   },
   "allowedCommands": [
