@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { staffApi } from '@/services/api';
-import { useStaffAuth } from '@/context/StaffContext';
+
+// Get staff password from localStorage or env (staff-only POS system)
+const getStaffPassword = (): string =>
+  localStorage.getItem('staff_password') ||
+  import.meta.env.VITE_STAFF_PASSWORD ||
+  'staff123';
 
 // Query keys for staff operations
 export const staffKeys = {
@@ -11,51 +16,30 @@ export const staffKeys = {
 };
 
 export function usePendingOrders() {
-  const { getPassword, isAuthenticated } = useStaffAuth();
-
   return useQuery({
     queryKey: staffKeys.pending(),
-    queryFn: () => {
-      const password = getPassword();
-      if (!password) throw new Error('Not authenticated');
-      return staffApi.getPendingOrders(password);
-    },
-    enabled: isAuthenticated,
+    queryFn: () => staffApi.getPendingOrders(getStaffPassword()),
     refetchInterval: 5000, // Poll every 5 seconds for new orders
     retry: 3,
   });
 }
 
 export function useQueueOrders() {
-  const { getPassword, isAuthenticated } = useStaffAuth();
-
   return useQuery({
     queryKey: staffKeys.queue(),
     queryFn: async () => {
-      const password = getPassword();
-      if (!password) throw new Error('Not authenticated');
-      // Queue orders are PAID status, fetched from the public queue endpoint
-      // but we use staff API for consistency
       const { orderApi } = await import('@/services/api');
       return orderApi.getQueue();
     },
-    enabled: isAuthenticated,
     refetchInterval: 5000,
     retry: 3,
   });
 }
 
 export function useCompletedOrders() {
-  const { getPassword, isAuthenticated } = useStaffAuth();
-
   return useQuery({
     queryKey: staffKeys.completed(),
-    queryFn: () => {
-      const password = getPassword();
-      if (!password) throw new Error('Not authenticated');
-      return staffApi.getCompletedOrders(password);
-    },
-    enabled: isAuthenticated,
+    queryFn: () => staffApi.getCompletedOrders(getStaffPassword()),
     refetchInterval: 30000, // Less frequent for completed orders
     retry: 3,
   });
@@ -63,16 +47,11 @@ export function useCompletedOrders() {
 
 export function useVerifyPayment() {
   const queryClient = useQueryClient();
-  const { getPassword } = useStaffAuth();
 
   return useMutation({
-    mutationFn: (orderId: string) => {
-      const password = getPassword();
-      if (!password) throw new Error('Not authenticated');
-      return staffApi.verifyPayment(password, orderId);
-    },
+    mutationFn: (orderId: string) =>
+      staffApi.verifyPayment(getStaffPassword(), orderId),
     onSuccess: () => {
-      // Invalidate all staff queries to refresh data
       queryClient.invalidateQueries({ queryKey: staffKeys.all });
       queryClient.invalidateQueries({ queryKey: ['queue'] });
     },
@@ -82,14 +61,10 @@ export function useVerifyPayment() {
 
 export function useCompleteOrder() {
   const queryClient = useQueryClient();
-  const { getPassword } = useStaffAuth();
 
   return useMutation({
-    mutationFn: (orderId: string) => {
-      const password = getPassword();
-      if (!password) throw new Error('Not authenticated');
-      return staffApi.completeOrder(password, orderId);
-    },
+    mutationFn: (orderId: string) =>
+      staffApi.completeOrder(getStaffPassword(), orderId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: staffKeys.all });
       queryClient.invalidateQueries({ queryKey: ['queue'] });
@@ -100,14 +75,10 @@ export function useCompleteOrder() {
 
 export function useCancelOrder() {
   const queryClient = useQueryClient();
-  const { getPassword } = useStaffAuth();
 
   return useMutation({
-    mutationFn: (orderId: string) => {
-      const password = getPassword();
-      if (!password) throw new Error('Not authenticated');
-      return staffApi.cancelOrder(password, orderId);
-    },
+    mutationFn: (orderId: string) =>
+      staffApi.cancelOrder(getStaffPassword(), orderId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: staffKeys.all });
     },

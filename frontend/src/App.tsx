@@ -1,10 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { CustomerOrder } from '@/pages/CustomerOrder';
-import { PaymentPage } from '@/pages/PaymentPage';
-import { StaffDashboard } from '@/pages/StaffDashboard';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { POSPage } from '@/pages/POSPage';
+import { PaymentScreen } from '@/pages/PaymentScreen';
+import { SuccessScreen } from '@/pages/SuccessScreen';
+import { OrderHistory } from '@/pages/OrderHistory';
 import { AdminDashboard } from '@/pages/AdminDashboard';
-import { QueueTracker } from '@/pages/QueueTracker';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,13 +21,25 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<CustomerOrder />} />
-          <Route path="/order" element={<CustomerOrder />} />
-          <Route path="/payment/:orderId" element={<PaymentPage />} />
-          <Route path="/queue" element={<QueueTracker />} />
-          <Route path="/queue/:orderId" element={<QueueTracker />} />
-          <Route path="/staff" element={<StaffDashboard />} />
+          {/* Main POS page */}
+          <Route path="/" element={<POSPage />} />
+          <Route path="/pos" element={<POSPage />} />
+
+          {/* Payment flow */}
+          <Route path="/payment/:orderId" element={<PaymentScreen />} />
+          <Route path="/success/:orderId" element={<SuccessScreen />} />
+
+          {/* Order history */}
+          <Route path="/history" element={<OrderHistory />} />
+
+          {/* Admin dashboard */}
           <Route path="/admin" element={<AdminDashboard />} />
+
+          {/* Redirects for old routes */}
+          <Route path="/order" element={<Navigate to="/" replace />} />
+          <Route path="/staff" element={<Navigate to="/history" replace />} />
+          <Route path="/queue" element={<Navigate to="/history" replace />} />
+          <Route path="/queue/:orderId" element={<Navigate to="/history" replace />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
