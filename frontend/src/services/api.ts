@@ -63,6 +63,29 @@ export const orderApi = {
   },
 };
 
+// POS API (public routes for staff-only POS system)
+export const posApi = {
+  getPendingOrders: async (): Promise<Order[]> => {
+    const { data } = await api.get<Order[]>('/pos/orders/pending');
+    return data;
+  },
+
+  getCompletedOrders: async (): Promise<Order[]> => {
+    const { data } = await api.get<Order[]>('/pos/orders/completed');
+    return data;
+  },
+
+  markPaid: async (orderId: string): Promise<Order> => {
+    const { data } = await api.put<Order>(`/pos/orders/${orderId}/mark-paid`);
+    return data;
+  },
+
+  completeOrder: async (orderId: string): Promise<Order> => {
+    const { data } = await api.put<Order>(`/pos/orders/${orderId}/complete`);
+    return data;
+  },
+};
+
 // Create authenticated axios instance
 const createAuthApi = (password: string) => {
   const instance = axios.create({

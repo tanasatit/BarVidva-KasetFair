@@ -20,6 +20,45 @@ import {
 import type { MenuItem, CreateMenuItemRequest, PopularItem, DateRange, DailyBreakdown } from '@/types/api';
 import { formatPrice } from '@/utils/orderUtils';
 
+// shadcn/ui components
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  BarChart3,
+  BookOpen,
+  ClipboardList,
+  LogOut,
+  Plus,
+  Search,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Loader2,
+  ShoppingBag,
+  Clock,
+  DollarSign,
+  TrendingUp,
+  Pencil,
+  Trash2,
+  Upload,
+  Image as ImageIcon,
+} from 'lucide-react';
+
 type TabType = 'overview' | 'menu' | 'orders';
 
 const ADMIN_TAB_STORAGE_KEY = 'admin-dashboard-tab';
@@ -39,10 +78,10 @@ function AdminDashboardContent() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-gray-600">กำลังโหลด...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">กำลังโหลด...</p>
         </div>
       </div>
     );
@@ -53,100 +92,81 @@ function AdminDashboardContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-card border-b border-border sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src="/images/logo.svg" alt="Bar Vidva" className="h-10" />
+              <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                <BarChart3 className="h-6 w-6 text-primary" />
+              </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
-                <p className="text-sm text-gray-500">Bar Vidva - Kaset Fair</p>
+                <h1 className="text-xl font-bold text-foreground">Admin Dashboard</h1>
+                <p className="text-sm text-muted-foreground">Bar Vidva - Kaset Fair</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate('/')}
-                className="flex items-center gap-2 px-4 py-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => navigate('/')}>
+                <ClipboardList className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">POS</span>
-              </button>
-              <button
-                onClick={logout}
-                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
+              </Button>
+              <Button variant="ghost" onClick={logout}>
+                <LogOut className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">ออกจากระบบ</span>
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Tab Navigation */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4">
-          <nav className="flex gap-1 overflow-x-auto">
-            <TabButton
-              active={activeTab === 'overview'}
-              onClick={() => setActiveTab('overview')}
-              icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>}
-              label="Overview"
-            />
-            <TabButton
-              active={activeTab === 'menu'}
-              onClick={() => setActiveTab('menu')}
-              icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>}
-              label="จัดการเมนู"
-            />
-            <TabButton
-              active={activeTab === 'orders'}
-              onClick={() => setActiveTab('orders')}
-              icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>}
-              label="ออเดอร์ทั้งหมด"
-            />
-          </nav>
+      {/* Tab Navigation using shadcn/ui Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="w-full">
+        <div className="bg-card border-b border-border">
+          <div className="max-w-7xl mx-auto px-4">
+            <TabsList className="h-auto p-0 bg-transparent gap-1">
+              <TabsTrigger
+                value="overview"
+                className="flex items-center gap-2 px-4 py-3 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none"
+              >
+                <BarChart3 className="h-4 w-4" />
+                Overview
+              </TabsTrigger>
+              <TabsTrigger
+                value="menu"
+                className="flex items-center gap-2 px-4 py-3 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none"
+              >
+                <BookOpen className="h-4 w-4" />
+                จัดการเมนู
+              </TabsTrigger>
+              <TabsTrigger
+                value="orders"
+                className="flex items-center gap-2 px-4 py-3 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none"
+              >
+                <ClipboardList className="h-4 w-4" />
+                ออเดอร์ทั้งหมด
+              </TabsTrigger>
+            </TabsList>
+          </div>
         </div>
-      </div>
 
-      {/* Tab Content */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {activeTab === 'overview' && <OverviewTab />}
-        {activeTab === 'menu' && <MenuTab />}
-        {activeTab === 'orders' && <OrdersTab />}
-      </main>
+        {/* Tab Content */}
+        <main className="max-w-7xl mx-auto px-4 py-6">
+          <TabsContent value="overview" className="mt-0">
+            <OverviewTab />
+          </TabsContent>
+          <TabsContent value="menu" className="mt-0">
+            <MenuTab />
+          </TabsContent>
+          <TabsContent value="orders" className="mt-0">
+            <OrdersTab />
+          </TabsContent>
+        </main>
+      </Tabs>
     </div>
   );
 }
 
-interface TabButtonProps {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}
-
-function TabButton({ active, onClick, icon, label }: TabButtonProps) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-3 font-medium text-sm whitespace-nowrap border-b-2 transition-colors ${
-        active
-          ? 'border-orange-500 text-orange-600'
-          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
 
 // Event dates: Jan 30 - Feb 7, 2026
 const EVENT_START = '2026-01-30';
@@ -239,35 +259,37 @@ function OverviewTab() {
   return (
     <div className="space-y-6">
       {/* Date Range Picker */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm text-gray-500 font-medium">ช่วงเวลา:</span>
-          <div className="flex flex-wrap gap-2">
-            <PresetButton active={preset === 'today'} onClick={() => setPreset('today')}>วันนี้</PresetButton>
-            <PresetButton active={preset === 'yesterday'} onClick={() => setPreset('yesterday')}>เมื่อวาน</PresetButton>
-            <PresetButton active={preset === 'last7'} onClick={() => setPreset('last7')}>7 วันล่าสุด</PresetButton>
-            <PresetButton active={preset === 'allEvent'} onClick={() => setPreset('allEvent')}>ทั้งงาน</PresetButton>
-            <PresetButton active={preset === 'custom'} onClick={() => setPreset('custom')}>กำหนดเอง</PresetButton>
-          </div>
-          {preset === 'custom' && (
-            <div className="flex items-center gap-2 ml-auto">
-              <input
-                type="date"
-                value={customStart}
-                onChange={(e) => setCustomStart(e.target.value)}
-                className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
-              <span className="text-gray-400">-</span>
-              <input
-                type="date"
-                value={customEnd}
-                onChange={(e) => setCustomEnd(e.target.value)}
-                className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm text-muted-foreground font-medium">ช่วงเวลา:</span>
+            <div className="flex flex-wrap gap-2">
+              <PresetButton active={preset === 'today'} onClick={() => setPreset('today')}>วันนี้</PresetButton>
+              <PresetButton active={preset === 'yesterday'} onClick={() => setPreset('yesterday')}>เมื่อวาน</PresetButton>
+              <PresetButton active={preset === 'last7'} onClick={() => setPreset('last7')}>7 วันล่าสุด</PresetButton>
+              <PresetButton active={preset === 'allEvent'} onClick={() => setPreset('allEvent')}>ทั้งงาน</PresetButton>
+              <PresetButton active={preset === 'custom'} onClick={() => setPreset('custom')}>กำหนดเอง</PresetButton>
             </div>
-          )}
-        </div>
-      </div>
+            {preset === 'custom' && (
+              <div className="flex items-center gap-2 ml-auto">
+                <Input
+                  type="date"
+                  value={customStart}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  className="w-auto"
+                />
+                <span className="text-muted-foreground">-</span>
+                <Input
+                  type="date"
+                  value={customEnd}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  className="w-auto"
+                />
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -275,97 +297,118 @@ function OverviewTab() {
           title={`ออเดอร์ ${preset === 'today' ? 'วันนี้' : ''}`}
           value={statsLoading ? '...' : totalOrders.toString()}
           subtitle={preset !== 'today' ? dateLabel : undefined}
-          icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>}
+          icon={<ShoppingBag className="h-6 w-6" />}
         />
         <StatCard
           title={`รายได้ ${preset === 'today' ? 'วันนี้' : ''}`}
           value={statsLoading ? '...' : formatPrice(totalRevenue)}
           subtitle={preset !== 'today' ? dateLabel : undefined}
-          icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+          icon={<DollarSign className="h-6 w-6" />}
           highlight
         />
         <StatCard
           title="รอชำระเงิน"
           value={statsLoading ? '...' : (stats?.pending_orders || 0).toString()}
-          icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+          icon={<Clock className="h-6 w-6" />}
         />
         <StatCard
           title="ในคิว"
           value={statsLoading ? '...' : (stats?.queue_length || 0).toString()}
-          icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>}
+          icon={<TrendingUp className="h-6 w-6" />}
         />
       </div>
 
       {/* Daily Breakdown Chart - Only show for multi-day ranges */}
       {isMultiDay && dailyBreakdown && dailyBreakdown.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">เปรียบเทียบรายวัน</h3>
-          <DailyBreakdownChart data={dailyBreakdown} />
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>เปรียบเทียบรายวัน</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DailyBreakdownChart data={dailyBreakdown} />
+          </CardContent>
+        </Card>
       )}
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Orders by Hour Chart */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">ออเดอร์ตามชั่วโมง</h3>
-          <BarChart data={ordersByHour} />
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>ออเดอร์ตามชั่วโมง</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BarChartComponent data={ordersByHour} />
+          </CardContent>
+        </Card>
 
         {/* Quick Stats */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">สรุปภาพรวม</h3>
-          <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>สรุปภาพรวม</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <QuickStatRow label="เสร็จสิ้นแล้ว" value={stats?.completed_orders || 0} total={totalOrders} color="green" />
             <QuickStatRow label="กำลังทำ" value={stats?.queue_length || 0} total={totalOrders} color="blue" />
             <QuickStatRow label="รอชำระ" value={stats?.pending_orders || 0} total={totalOrders} color="amber" />
-            <div className="pt-4 border-t border-gray-200">
+            <Separator />
+            <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">ยอดเฉลี่ยต่อออเดอร์</span>
-                <span className="text-gray-900 font-medium">{formatPrice(avgOrderValue)}</span>
+                <span className="text-muted-foreground">ยอดเฉลี่ยต่อออเดอร์</span>
+                <span className="text-foreground font-medium">{formatPrice(avgOrderValue)}</span>
               </div>
               {stats?.avg_completion_time_mins !== undefined && stats.avg_completion_time_mins > 0 && (
-                <div className="flex justify-between text-sm mt-2">
-                  <span className="text-gray-500">เวลาเฉลี่ยในการทำ</span>
-                  <span className="text-gray-900 font-medium">{Math.round(stats.avg_completion_time_mins)} นาที</span>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">เวลาเฉลี่ยในการทำ</span>
+                  <span className="text-foreground font-medium">{Math.round(stats.avg_completion_time_mins)} นาที</span>
                 </div>
               )}
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Popular Items Section */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">เมนูขายดี {preset !== 'today' && <span className="text-sm font-normal text-gray-500">({dateLabel})</span>}</h3>
-        <PopularItemsList items={popularItems || []} />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            เมนูขายดี {preset !== 'today' && <span className="text-sm font-normal text-muted-foreground">({dateLabel})</span>}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PopularItemsList items={popularItems || []} />
+        </CardContent>
+      </Card>
 
       {/* Recent Activity - Always shows today */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">กิจกรรมล่าสุด <span className="text-sm font-normal text-gray-500">(วันนี้)</span></h3>
-        <RecentActivity
-          pending={pendingOrders || []}
-          queue={queueOrders || []}
-          completed={completedOrders || []}
-        />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            กิจกรรมล่าสุด <span className="text-sm font-normal text-muted-foreground">(วันนี้)</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RecentActivity
+            pending={pendingOrders || []}
+            queue={queueOrders || []}
+            completed={completedOrders || []}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
 function PresetButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button
+    <Button
+      variant={active ? 'default' : 'outline'}
+      size="sm"
       onClick={onClick}
-      className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
-        active
-          ? 'bg-orange-500 text-white'
-          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-      }`}
+      className={active ? '' : 'bg-muted'}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -433,14 +476,16 @@ interface StatCardProps {
 
 function StatCard({ title, value, subtitle, icon, highlight }: StatCardProps) {
   return (
-    <div className={`rounded-xl border p-5 ${highlight ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'}`}>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-gray-500 text-sm">{title}</span>
-        <div className={highlight ? 'text-orange-500' : 'text-gray-400'}>{icon}</div>
-      </div>
-      <p className={`text-2xl font-bold ${highlight ? 'text-orange-600' : 'text-gray-900'}`}>{value}</p>
-      {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
-    </div>
+    <Card className={highlight ? 'bg-primary/5 border-primary/20' : ''}>
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-muted-foreground text-sm">{title}</span>
+          <div className={highlight ? 'text-primary' : 'text-muted-foreground'}>{icon}</div>
+        </div>
+        <p className={`text-2xl font-bold ${highlight ? 'text-primary' : 'text-foreground'}`}>{value}</p>
+        {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -475,11 +520,11 @@ function QuickStatRow({ label, value, total, color }: QuickStatRowProps) {
   );
 }
 
-interface BarChartProps {
+interface BarChartComponentProps {
   data: { hour: number; count: number }[];
 }
 
-function BarChart({ data }: BarChartProps) {
+function BarChartComponent({ data }: BarChartComponentProps) {
   const maxCount = Math.max(...data.map(d => d.count), 1);
 
   return (
@@ -603,16 +648,11 @@ function MenuTab() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900">จัดการเมนูอาหาร</h2>
-        <button
-          onClick={() => setIsAddingNew(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+        <h2 className="text-xl font-semibold text-foreground">จัดการเมนูอาหาร</h2>
+        <Button onClick={() => setIsAddingNew(true)}>
+          <Plus className="h-4 w-4 mr-2" />
           เพิ่มเมนูใหม่
-        </button>
+        </Button>
       </div>
 
       {/* Add New Form */}
@@ -642,7 +682,7 @@ function MenuTab() {
                 isLoading={updateMenuItem.isPending}
               />
             ) : (
-              <MenuItemCard
+              <AdminMenuItemCard
                 item={item}
                 onEdit={() => setEditingId(item.id)}
                 onDelete={() => deleteMenuItem.mutate(item.id)}
@@ -669,71 +709,56 @@ function MenuTab() {
   );
 }
 
-interface MenuItemCardProps {
+interface AdminMenuItemCardProps {
   item: MenuItem;
   onEdit: () => void;
   onDelete: () => void;
   onToggleAvailable: () => void;
 }
 
-function MenuItemCard({ item, onEdit, onDelete, onToggleAvailable }: MenuItemCardProps) {
+function AdminMenuItemCard({ item, onEdit, onDelete, onToggleAvailable }: AdminMenuItemCardProps) {
   return (
-    <div className={`bg-white rounded-xl border ${item.available ? 'border-gray-200' : 'border-red-200'} overflow-hidden`}>
+    <Card className={!item.available ? 'border-destructive/50' : ''}>
       {/* Image Section */}
-      <div className="aspect-video bg-gray-100 flex items-center justify-center overflow-hidden">
+      <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden rounded-t-lg">
         {item.image_url ? (
           <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
         ) : (
-          <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
+          <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
         )}
       </div>
-      <div className="p-4">
+      <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div>
-            <h3 className="text-gray-900 font-medium">{item.name}</h3>
+            <h3 className="text-foreground font-medium">{item.name}</h3>
             {item.category && (
-              <span className="text-xs text-gray-500">{item.category}</span>
+              <span className="text-xs text-muted-foreground">{item.category}</span>
             )}
           </div>
-          <span className="text-lg font-bold text-orange-600">{formatPrice(item.price)}</span>
+          <span className="text-lg font-bold text-primary">{formatPrice(item.price)}</span>
         </div>
 
         <div className="flex items-center justify-between">
-          <button
+          <Badge
+            variant={item.available ? 'default' : 'destructive'}
+            className="cursor-pointer"
             onClick={onToggleAvailable}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              item.available
-                ? 'bg-green-50 text-green-600 hover:bg-green-100'
-                : 'bg-red-50 text-red-600 hover:bg-red-100'
-            }`}
           >
-            <div className={`w-2 h-2 rounded-full ${item.available ? 'bg-green-500' : 'bg-red-500'}`} />
+            <div className={`w-2 h-2 rounded-full mr-2 ${item.available ? 'bg-green-300' : 'bg-red-300'}`} />
             {item.available ? 'พร้อมขาย' : 'หมด'}
-          </button>
+          </Badge>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onEdit}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-            <button
-              onClick={onDelete}
-              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={onEdit}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onDelete} className="hover:text-destructive">
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -785,120 +810,117 @@ function MenuItemForm({ initialData, onSubmit, onCancel, isLoading }: MenuItemFo
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-orange-200 p-4 space-y-4">
-      {/* Image Upload Section */}
-      <div>
-        <label className="block text-sm text-gray-600 mb-2">รูปภาพเมนู</label>
-        <div className="flex items-start gap-4">
-          {/* Image Preview */}
-          <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50 flex-shrink-0">
-            {imageUrl ? (
-              <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
-            ) : (
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            )}
+    <Card className="border-primary/20">
+      <CardContent className="p-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Image Upload Section */}
+          <div className="space-y-2">
+            <Label>รูปภาพเมนู</Label>
+            <div className="flex items-start gap-4">
+              {/* Image Preview */}
+              <div className="w-24 h-24 rounded-lg border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-muted flex-shrink-0">
+                {imageUrl ? (
+                  <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                )}
+              </div>
+              {/* Upload Controls */}
+              <div className="flex-1 space-y-2">
+                <Label className="inline-flex items-center gap-2 px-3 py-2 bg-muted text-foreground rounded-lg text-sm font-medium hover:bg-muted/80 transition-colors cursor-pointer">
+                  <Upload className="h-4 w-4" />
+                  อัปโหลดรูป
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </Label>
+                {imageUrl && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemoveImage}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    ลบรูป
+                  </Button>
+                )}
+                <p className="text-xs text-muted-foreground">รองรับ JPG, PNG ขนาดไม่เกิน 500KB</p>
+              </div>
+            </div>
           </div>
-          {/* Upload Controls */}
-          <div className="flex-1 space-y-2">
-            <label className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors cursor-pointer">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-              อัปโหลดรูป
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="menu-name">ชื่อเมนู</Label>
+              <Input
+                id="menu-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="เช่น เฟรนช์ฟรายส์ M"
+                required
               />
-            </label>
-            {imageUrl && (
-              <button
-                type="button"
-                onClick={handleRemoveImage}
-                className="inline-flex items-center gap-1 px-3 py-2 text-red-600 text-sm hover:bg-red-50 rounded-lg transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                ลบรูป
-              </button>
-            )}
-            <p className="text-xs text-gray-400">รองรับ JPG, PNG ขนาดไม่เกิน 500KB</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="menu-price">ราคา (บาท)</Label>
+              <Input
+                id="menu-price"
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="เช่น 35"
+                min="0"
+                step="1"
+                required
+              />
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm text-gray-600 mb-1">ชื่อเมนู</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            placeholder="เช่น เฟรนช์ฟรายส์ M"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm text-gray-600 mb-1">ราคา (บาท)</label>
-          <input
-            type="number"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            placeholder="เช่น 35"
-            min="0"
-            step="1"
-            required
-          />
-        </div>
-      </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="menu-category">หมวดหมู่ (ไม่บังคับ)</Label>
+              <Input
+                id="menu-category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="เช่น เฟรนช์ฟรายส์"
+              />
+            </div>
+            <div className="flex items-end">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={available}
+                  onChange={(e) => setAvailable(e.target.checked)}
+                  className="w-5 h-5 rounded border-border text-primary focus:ring-primary focus:ring-offset-0"
+                />
+                <span className="text-foreground">พร้อมขาย</span>
+              </label>
+            </div>
+          </div>
 
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm text-gray-600 mb-1">หมวดหมู่ (ไม่บังคับ)</label>
-          <input
-            type="text"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            placeholder="เช่น เฟรนช์ฟรายส์"
-          />
-        </div>
-        <div className="flex items-end">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={available}
-              onChange={(e) => setAvailable(e.target.checked)}
-              className="w-5 h-5 rounded bg-gray-50 border-gray-300 text-orange-500 focus:ring-orange-500 focus:ring-offset-0"
-            />
-            <span className="text-gray-900">พร้อมขาย</span>
-          </label>
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors"
-        >
-          ยกเลิก
-        </button>
-        <button
-          type="submit"
-          disabled={isLoading || !name.trim() || !price}
-          className="px-4 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors disabled:opacity-50"
-        >
-          {isLoading ? 'กำลังบันทึก...' : initialData ? 'บันทึก' : 'เพิ่มเมนู'}
-        </button>
-      </div>
-    </form>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="ghost" onClick={onCancel}>
+              ยกเลิก
+            </Button>
+            <Button type="submit" disabled={isLoading || !name.trim() || !price}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  กำลังบันทึก...
+                </>
+              ) : (
+                initialData ? 'บันทึก' : 'เพิ่มเมนู'
+              )}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1019,239 +1041,211 @@ function OrdersTab() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900">ออเดอร์ทั้งหมดวันนี้</h2>
-        <span className="text-gray-500">{filteredOrders.length} / {allOrders.length} รายการ</span>
+        <h2 className="text-xl font-semibold text-foreground">ออเดอร์ทั้งหมดวันนี้</h2>
+        <span className="text-muted-foreground">{filteredOrders.length} / {allOrders.length} รายการ</span>
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
-        {/* Search Bar */}
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="ค้นหา Order ID หรือชื่อลูกค้า..."
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => handleSearchChange('')}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-        </div>
-
-        {/* Filter Row */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Sort */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-500">เรียงตาม:</label>
-            <select
-              value={sortBy}
-              onChange={(e) => handleSortChange(e.target.value as SortOption)}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
-            >
-              <option value="date_desc">ล่าสุด</option>
-              <option value="date_asc">เก่าสุด</option>
-              <option value="amount_desc">ยอดมาก → น้อย</option>
-              <option value="amount_asc">ยอดน้อย → มาก</option>
-              <option value="status">สถานะ</option>
-            </select>
+      <Card>
+        <CardContent className="p-4 space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="ค้นหา Order ID หรือชื่อลูกค้า..."
+              className="pl-10 pr-10"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleSearchChange('')}
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
-          {/* Status Filter */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-500">สถานะ:</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => handleStatusFilterChange(e.target.value as StatusFilter)}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
-            >
-              <option value="all">ทั้งหมด</option>
-              <option value="PENDING_PAYMENT">รอชำระ</option>
-              <option value="PAID">กำลังทำ</option>
-              <option value="COMPLETED">เสร็จสิ้น</option>
-              <option value="CANCELLED">ยกเลิก</option>
-            </select>
+          {/* Filter Row */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Sort */}
+            <div className="flex items-center gap-2">
+              <Label className="text-muted-foreground">เรียงตาม:</Label>
+              <select
+                value={sortBy}
+                onChange={(e) => handleSortChange(e.target.value as SortOption)}
+                className="px-3 py-1.5 text-sm border border-input rounded-md focus:ring-2 focus:ring-ring focus:border-transparent bg-background"
+              >
+                <option value="date_desc">ล่าสุด</option>
+                <option value="date_asc">เก่าสุด</option>
+                <option value="amount_desc">ยอดมาก → น้อย</option>
+                <option value="amount_asc">ยอดน้อย → มาก</option>
+                <option value="status">สถานะ</option>
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div className="flex items-center gap-2">
+              <Label className="text-muted-foreground">สถานะ:</Label>
+              <select
+                value={statusFilter}
+                onChange={(e) => handleStatusFilterChange(e.target.value as StatusFilter)}
+                className="px-3 py-1.5 text-sm border border-input rounded-md focus:ring-2 focus:ring-ring focus:border-transparent bg-background"
+              >
+                <option value="all">ทั้งหมด</option>
+                <option value="PENDING_PAYMENT">รอชำระ</option>
+                <option value="PAID">กำลังทำ</option>
+                <option value="COMPLETED">เสร็จสิ้น</option>
+                <option value="CANCELLED">ยกเลิก</option>
+              </select>
+            </div>
+
+            {/* Clear Filters */}
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="text-primary"
+              >
+                <X className="h-4 w-4 mr-1" />
+                ล้างตัวกรอง
+              </Button>
+            )}
           </div>
-
-          {/* Customer Filter */}
-          {/* <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-500">ลูกค้า:</label>
-            <select
-              value={customerFilter}
-              onChange={(e) => handleCustomerFilterChange(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white max-w-[150px]"
-            >
-              <option value="all">ทั้งหมด</option>
-              {uniqueCustomers.map(customer => (
-                <option key={customer} value={customer}>{customer}</option>
-              ))}
-            </select>
-          </div> */}
-
-          {/* Clear Filters */}
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              ล้างตัวกรอง
-            </button>
-          )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Orders Table */}
       {allOrders.length === 0 ? (
         <div className="text-center py-12">
-          <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          <p className="text-gray-500">ยังไม่มีออเดอร์วันนี้</p>
+          <ClipboardList className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+          <p className="text-muted-foreground">ยังไม่มีออเดอร์วันนี้</p>
         </div>
       ) : filteredOrders.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-          <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <p className="text-gray-500">ไม่พบออเดอร์ที่ตรงกับการค้นหา</p>
-          <button
-            onClick={clearFilters}
-            className="mt-3 text-orange-600 hover:text-orange-700 text-sm font-medium"
-          >
-            ล้างตัวกรอง
-          </button>
-        </div>
+        <Card>
+          <CardContent className="text-center py-12">
+            <Search className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-muted-foreground">ไม่พบออเดอร์ที่ตรงกับการค้นหา</p>
+            <Button variant="link" onClick={clearFilters} className="mt-3">
+              ล้างตัวกรอง
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <>
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="text-left text-sm font-medium text-gray-500 px-4 py-3">Order ID</th>
-                    <th className="text-left text-sm font-medium text-gray-500 px-4 py-3">ลูกค้า</th>
-                    <th className="text-left text-sm font-medium text-gray-500 px-4 py-3">รายการ</th>
-                    <th className="text-right text-sm font-medium text-gray-500 px-4 py-3">ยอดรวม</th>
-                    <th className="text-center text-sm font-medium text-gray-500 px-4 py-3">สถานะ</th>
-                    <th className="text-right text-sm font-medium text-gray-500 px-4 py-3">เวลา</th>
-                  </tr>
-                </thead>
-                <tbody>
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>ลูกค้า</TableHead>
+                    <TableHead>รายการ</TableHead>
+                    <TableHead className="text-right">ยอดรวม</TableHead>
+                    <TableHead className="text-center">สถานะ</TableHead>
+                    <TableHead className="text-right">เวลา</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {paginatedOrders.map((order) => (
-                    <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3 text-gray-900 font-medium">{order.id}</td>
-                      <td className="px-4 py-3 text-gray-600">{order.customer_name}</td>
-                      <td className="px-4 py-3 text-gray-500 text-sm">
-                        {order.items.map(i => `${i.name} x${i.quantity}`).join(', ')}
-                      </td>
-                      <td className="px-4 py-3 text-right text-orange-600 font-medium">
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">{order.id}</TableCell>
+                      <TableCell className="text-muted-foreground">{order.customer_name}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm max-w-[200px]">
+                        <span className="truncate block">
+                          {order.items.map(i => `${i.name} x${i.quantity}`).join(', ')}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right text-primary font-medium">
                         {formatPrice(order.total_amount)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <StatusBadge status={order.status} />
-                      </td>
-                      <td className="px-4 py-3 text-right text-gray-400 text-sm">
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <OrderStatusBadge status={order.status} />
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground text-sm">
                         {new Date(order.created_at).toLocaleTimeString('th-TH', {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
 
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 แสดง {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredOrders.length)} จาก {filteredOrders.length} รายการ
               </p>
               <div className="flex items-center gap-1">
-                <button
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => setCurrentPage(1)}
                   disabled={currentPage === 1}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   title="หน้าแรก"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                  </svg>
-                </button>
-                <button
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   title="หน้าก่อน"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
 
                 {/* Page Numbers */}
                 <div className="flex items-center gap-1 mx-2">
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
                     .filter(page => {
-                      // Show first, last, current, and adjacent pages
                       return page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1;
                     })
                     .map((page, index, array) => (
                       <span key={page} className="flex items-center">
                         {index > 0 && array[index - 1] !== page - 1 && (
-                          <span className="px-1 text-gray-400">...</span>
+                          <span className="px-1 text-muted-foreground">...</span>
                         )}
-                        <button
+                        <Button
+                          variant={currentPage === page ? 'default' : 'outline'}
+                          size="sm"
                           onClick={() => setCurrentPage(page)}
-                          className={`min-w-[32px] h-8 px-2 rounded-lg text-sm font-medium transition-colors ${
-                            currentPage === page
-                              ? 'bg-orange-500 text-white'
-                              : 'text-gray-600 hover:bg-gray-100'
-                          }`}
+                          className="min-w-[32px]"
                         >
                           {page}
-                        </button>
+                        </Button>
                       </span>
                     ))}
                 </div>
 
-                <button
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   title="หน้าถัดไป"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-                <button
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => setCurrentPage(totalPages)}
                   disabled={currentPage === totalPages}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   title="หน้าสุดท้าย"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                  </svg>
-                </button>
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           )}
@@ -1261,18 +1255,20 @@ function OrdersTab() {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const config = {
-    PENDING_PAYMENT: { label: 'รอชำระ', class: 'bg-amber-100 text-amber-700' },
-    PAID: { label: 'กำลังทำ', class: 'bg-blue-100 text-blue-700' },
-    COMPLETED: { label: 'เสร็จสิ้น', class: 'bg-green-100 text-green-700' },
-    CANCELLED: { label: 'ยกเลิก', class: 'bg-red-100 text-red-700' },
-  }[status] || { label: status, class: 'bg-gray-100 text-gray-700' };
+function OrderStatusBadge({ status }: { status: string }) {
+  const config: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+    PENDING_PAYMENT: { label: 'รอชำระ', variant: 'outline' },
+    PAID: { label: 'กำลังทำ', variant: 'default' },
+    COMPLETED: { label: 'เสร็จสิ้น', variant: 'secondary' },
+    CANCELLED: { label: 'ยกเลิก', variant: 'destructive' },
+  };
+
+  const { label, variant } = config[status] || { label: status, variant: 'outline' as const };
 
   return (
-    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${config.class}`}>
-      {config.label}
-    </span>
+    <Badge variant={variant}>
+      {label}
+    </Badge>
   );
 }
 
@@ -1280,8 +1276,8 @@ function LoadingState() {
   return (
     <div className="flex items-center justify-center py-12">
       <div className="text-center">
-        <div className="animate-spin w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full mx-auto mb-3" />
-        <p className="text-gray-500">กำลังโหลด...</p>
+        <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-3" />
+        <p className="text-muted-foreground">กำลังโหลด...</p>
       </div>
     </div>
   );

@@ -203,6 +203,16 @@ func (h *MenuHandler) DeleteMenuItem(c *fiber.Ctx) error {
 			})
 		}
 
+		// Check for foreign key constraint violation (menu item is used in orders)
+		if strings.Contains(err.Error(), "violates foreign key") ||
+			strings.Contains(err.Error(), "FOREIGN KEY") ||
+			strings.Contains(err.Error(), "referenced") {
+			return c.Status(http.StatusConflict).JSON(fiber.Map{
+				"error": "Cannot delete menu item because it is used in existing orders. Consider marking it as unavailable instead.",
+				"code":  "MENU_ITEM_IN_USE",
+			})
+		}
+
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to delete menu item",
 			"code":  "INTERNAL_ERROR",

@@ -43,6 +43,13 @@ func setupRoutes(app *fiber.App, db *sqlx.DB, orderHandler *handlers.OrderHandle
 	// Queue route - public so customers can see queue status
 	api.Get("/queue", orderHandler.GetQueue)
 
+	// POS routes - public for staff-only POS system (no auth for internal use)
+	// These are simplified endpoints for the POS workflow
+	api.Get("/pos/orders/pending", orderHandler.GetPendingPayment)
+	api.Get("/pos/orders/completed", orderHandler.GetCompletedOrders)
+	api.Put("/pos/orders/:id/mark-paid", orderHandler.VerifyPayment)
+	api.Put("/pos/orders/:id/complete", orderHandler.CompleteOrder)
+
 	// Staff routes (require staff authentication)
 	staffPassword := os.Getenv("STAFF_PASSWORD")
 	staff := api.Group("/staff", StaffAuth(staffPassword))

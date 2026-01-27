@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, CheckCircle, Loader2, XCircle } from "lucide-react";
-import { orderApi, staffApi } from "@/services/api";
+import { orderApi, posApi } from "@/services/api";
 import { generatePromptPayPayload } from "@/utils/promptpay";
 import type { Order } from "@/types/api";
 
@@ -17,9 +16,6 @@ export function PaymentScreen() {
   const { orderId } = useParams<{ orderId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const [staffPassword] = useState(() =>
-    localStorage.getItem("staff_password") || import.meta.env.VITE_STAFF_PASSWORD || "staff123"
-  );
 
   // Get order from navigation state or fetch from API
   const orderFromState = location.state?.order as Order | undefined;
@@ -39,7 +35,7 @@ export function PaymentScreen() {
 
   // Mark as paid mutation
   const markPaidMutation = useMutation({
-    mutationFn: () => staffApi.verifyPayment(staffPassword, orderId!),
+    mutationFn: () => posApi.markPaid(orderId!),
     onSuccess: (updatedOrder) => {
       navigate(`/success/${orderId}`, { state: { order: updatedOrder } });
     },
@@ -98,12 +94,7 @@ export function PaymentScreen() {
           {/* Order Details Card */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Order #{order.id}</span>
-                <span className="text-sm font-normal text-muted-foreground">
-                  {order.customer_name}
-                </span>
-              </CardTitle>
+              <CardTitle>Order #{order.id}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">

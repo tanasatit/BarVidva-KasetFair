@@ -11,6 +11,50 @@ import { History, Loader2 } from "lucide-react";
 import { getCurrentDateKey, cartToOrderItems } from "@/utils/orderUtils";
 import type { MenuItem, CartItem, CreateOrderRequest } from "@/types/api";
 
+// Category label mapping (English to Thai)
+const categoryLabels: Record<string, string> = {
+  food: "อาหาร",
+  Food: "อาหาร",
+  drink: "เครื่องดื่ม",
+  Drink: "เครื่องดื่ม",
+  drinks: "เครื่องดื่ม",
+  Drinks: "เครื่องดื่ม",
+  beverage: "เครื่องดื่ม",
+  Beverage: "เครื่องดื่ม",
+  snack: "ของว่าง",
+  Snack: "ของว่าง",
+  Other: "อื่นๆ",
+  other: "อื่นๆ",
+};
+
+// Category sort order (lower = first)
+const categorySortOrder: Record<string, number> = {
+  food: 1,
+  Food: 1,
+  อาหาร: 1,
+  drink: 2,
+  Drink: 2,
+  drinks: 2,
+  Drinks: 2,
+  beverage: 2,
+  Beverage: 2,
+  เครื่องดื่ม: 2,
+  snack: 3,
+  Snack: 3,
+  ของว่าง: 3,
+  Other: 99,
+  other: 99,
+  อื่นๆ: 99,
+};
+
+const getCategoryLabel = (category: string): string => {
+  return categoryLabels[category] || category;
+};
+
+const getCategorySortOrder = (category: string): number => {
+  return categorySortOrder[category] || 50;
+};
+
 export function POSPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -19,11 +63,13 @@ export function POSPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerName, setCustomerName] = useState("");
 
-  // Get unique categories from menu items
+  // Get unique categories from menu items, sorted by predefined order
   const categories = useMemo(() => {
     if (!menuItems) return [];
     const cats = new Set(menuItems.map((item) => item.category || "Other"));
-    return Array.from(cats);
+    return Array.from(cats).sort(
+      (a, b) => getCategorySortOrder(a) - getCategorySortOrder(b)
+    );
   }, [menuItems]);
 
   // Group items by category
@@ -187,7 +233,7 @@ export function POSPage() {
               <TabsList className="mb-6">
                 {categories.map((cat) => (
                   <TabsTrigger key={cat} value={cat}>
-                    {cat}
+                    {getCategoryLabel(cat)}
                   </TabsTrigger>
                 ))}
               </TabsList>

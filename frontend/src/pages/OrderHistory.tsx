@@ -22,14 +22,8 @@ import {
   DollarSign,
   ShoppingBag,
 } from "lucide-react";
-import { orderApi, staffApi } from "@/services/api";
+import { orderApi, posApi } from "@/services/api";
 import type { OrderStatus } from "@/types/api";
-
-// Get staff password from localStorage or env
-const getStaffPassword = () =>
-  localStorage.getItem("staff_password") ||
-  import.meta.env.VITE_STAFF_PASSWORD ||
-  "staff123";
 
 export function OrderHistory() {
   const navigate = useNavigate();
@@ -51,13 +45,13 @@ export function OrderHistory() {
 
   const { data: completedOrders, isLoading: isLoadingCompleted } = useQuery({
     queryKey: ["orders", "completed"],
-    queryFn: () => staffApi.getCompletedOrders(getStaffPassword()),
+    queryFn: () => posApi.getCompletedOrders(),
     refetchInterval: 10000,
   });
 
   const { data: pendingOrders, isLoading: isLoadingPending } = useQuery({
     queryKey: ["orders", "pending"],
-    queryFn: () => staffApi.getPendingOrders(getStaffPassword()),
+    queryFn: () => posApi.getPendingOrders(),
     refetchInterval: 10000,
   });
 
@@ -81,8 +75,7 @@ export function OrderHistory() {
 
   // Mark order as complete mutation
   const completeOrderMutation = useMutation({
-    mutationFn: (orderId: string) =>
-      staffApi.completeOrder(getStaffPassword(), orderId),
+    mutationFn: (orderId: string) => posApi.completeOrder(orderId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["queue"] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });

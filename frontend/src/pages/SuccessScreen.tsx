@@ -78,12 +78,6 @@ export function SuccessScreen() {
             <p className="text-3xl font-bold text-primary">{order.id}</p>
           </div>
 
-          {/* Customer Name */}
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Customer</span>
-            <span className="font-medium">{order.customer_name}</span>
-          </div>
-
           {/* Status Badge */}
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">Status</span>
