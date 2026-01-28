@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMenu } from "@/hooks/useMenu";
 import { orderApi } from "@/services/api";
@@ -57,6 +57,7 @@ const getCategorySortOrder = (category: string): number => {
 
 export function POSPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { data: menuItems, isLoading, error } = useMenu();
 
@@ -71,6 +72,11 @@ export function POSPage() {
       (a, b) => getCategorySortOrder(a) - getCategorySortOrder(b)
     );
   }, [menuItems]);
+
+  const activeCategory =
+    searchParams.get("category") && categories.includes(searchParams.get("category")!)
+      ? searchParams.get("category")!
+      : categories[0];
 
   // Group items by category
   const itemsByCategory = useMemo(() => {
@@ -202,9 +208,16 @@ export function POSPage() {
       {/* Header */}
       <header className="border-b border-border bg-card px-6 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">
-            Bar Vidva POS
-          </h1>
+          <div className="flex items-center gap-3">
+            <img
+              src="/images/logo.png"
+              alt="Bar Vidva Logo"
+              className="h-18 w-auto object-contain"
+            />
+            <h1 className="text-2xl font-bold text-foreground">
+              Bar Vidva POS
+            </h1>
+          </div>
           <Button
             variant="outline"
             onClick={() => navigate("/history")}
@@ -229,17 +242,30 @@ export function POSPage() {
         {/* Left Panel - Menu (70%) */}
         <div className="w-[70%] p-6 overflow-auto">
           {categories.length > 1 ? (
-            <Tabs defaultValue={categories[0]}>
+            <Tabs
+              value={activeCategory}
+              onValueChange={(value) => {
+                setSearchParams({ category: value });
+              }}
+            >
               <TabsList className="mb-6">
                 {categories.map((cat) => (
-                  <TabsTrigger key={cat} value={cat}>
+                  <TabsTrigger
+                    key={cat}
+                    value={cat}
+                    className="px-4 py-2 min-h-[40px] whitespace-nowrap flex items-center justify-center"
+                  >
                     {getCategoryLabel(cat)}
                   </TabsTrigger>
                 ))}
               </TabsList>
 
               {categories.map((cat) => (
-                <TabsContent key={cat} value={cat}>
+                <TabsContent
+                  key={cat}
+                  value={cat}
+                  className="transition-all duration-300 ease-out data-[state=inactive]:opacity-0 data-[state=inactive]:translate-x-2 data-[state=active]:opacity-100 data-[state=active]:translate-x-0"
+                >
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {itemsByCategory[cat]?.map((item) => (
                       <MenuItemCard

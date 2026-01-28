@@ -24,10 +24,10 @@ export function MenuItemCard({ item, quantity = 0, onAdd }: MenuItemCardProps) {
           <img
             src={item.image_url}
             alt={item.name}
-            className="w-16 h-16 mx-auto mb-2 object-cover rounded-md"
+            className="w-full h-44 mx-auto mb-3 object-contain rounded-lg bg-white"
           />
         ) : (
-          <div className="w-16 h-16 mx-auto mb-2 bg-muted rounded-md flex items-center justify-center text-2xl">
+          <div className="w-full h-44 mx-auto mb-3 bg-muted rounded-lg flex items-center justify-center text-3xl">
             🍟
           </div>
         )}
