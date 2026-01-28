@@ -1,7 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ShoppingCart, Trash, Loader2 } from "lucide-react";
 import { POSOrderItem } from "./POSOrderItem";
@@ -9,8 +7,6 @@ import type { CartItem } from "@/types/api";
 
 interface POSOrderSummaryProps {
   items: CartItem[];
-  customerName: string;
-  onCustomerNameChange: (name: string) => void;
   onIncrement: (itemId: number) => void;
   onDecrement: (itemId: number) => void;
   onRemove: (itemId: number) => void;
@@ -21,8 +17,6 @@ interface POSOrderSummaryProps {
 
 export function POSOrderSummary({
   items,
-  customerName,
-  onCustomerNameChange,
   onIncrement,
   onDecrement,
   onRemove,
@@ -32,7 +26,7 @@ export function POSOrderSummary({
 }: POSOrderSummaryProps) {
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-  const isValid = customerName.trim().length >= 2 && items.length > 0;
+  const isValid = items.length > 0;
 
   return (
     <Card className="h-full flex flex-col">
@@ -49,25 +43,6 @@ export function POSOrderSummary({
       </CardHeader>
 
       <CardContent className="flex-1 overflow-auto space-y-4">
-        {/* Customer Name Input */}
-        <div className="space-y-2">
-          <Label htmlFor="customer-name">Customer Name</Label>
-          <Input
-            id="customer-name"
-            placeholder="Enter customer name"
-            value={customerName}
-            onChange={(e) => onCustomerNameChange(e.target.value)}
-            className="w-full"
-          />
-          {customerName.length > 0 && customerName.length < 2 && (
-            <p className="text-xs text-destructive">
-              Name must be at least 2 characters
-            </p>
-          )}
-        </div>
-
-        <Separator />
-
         {/* Order Items */}
         {items.length === 0 ? (
           <div className="h-32 flex items-center justify-center text-muted-foreground">

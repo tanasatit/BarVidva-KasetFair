@@ -21,9 +21,14 @@ import {
   Clock,
   DollarSign,
   ShoppingBag,
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
 } from "lucide-react";
 import { orderApi, posApi } from "@/services/api";
 import type { OrderStatus } from "@/types/api";
+
+const ITEMS_PER_PAGE = 10;
 
 export function OrderHistory() {
   const navigate = useNavigate();
@@ -31,6 +36,7 @@ export function OrderHistory() {
   const [activeTab, setActiveTab] = useState<"all" | "paid" | "completed">(
     "all"
   );
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch orders using the queue endpoint (shows PAID orders) and completed
   const {
@@ -81,6 +87,26 @@ export function OrderHistory() {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
     },
   });
+
+  // Mark order as paid mutation
+  const markPaidMutation = useMutation({
+    mutationFn: (orderId: string) => posApi.markPaid(orderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["queue"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+
+  // Pagination calculations
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedOrders = filteredOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
+
+  // Reset to page 1 when switching tabs
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as typeof activeTab);
+    setCurrentPage(1);
+  };
 
   // Calculate stats
   const stats = {
@@ -221,7 +247,7 @@ export function OrderHistory() {
         {/* Tabs */}
         <Tabs
           value={activeTab}
-          onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+          onValueChange={handleTabChange}
         >
           <TabsList className="mb-4">
             <TabsTrigger value="all">
@@ -247,64 +273,117 @@ export function OrderHistory() {
                     No orders found
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Order ID</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Items</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Time</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredOrders.map((order) => (
-                        <TableRow key={order.id}>
-                          <TableCell className="font-mono font-medium">
-                            {order.id}
-                          </TableCell>
-                          <TableCell>{order.customer_name}</TableCell>
-                          <TableCell className="max-w-[200px]">
-                            <span className="text-sm text-muted-foreground truncate block">
-                              {order.items
-                                .map((i) => `${i.name} ×${i.quantity}`)
-                                .join(", ")}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            ฿{order.total_amount.toFixed(0)}
-                          </TableCell>
-                          <TableCell>{getStatusBadge(order.status)}</TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {formatTime(order.created_at)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {order.status === "PAID" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  completeOrderMutation.mutate(order.id)
-                                }
-                                disabled={completeOrderMutation.isPending}
-                              >
-                                {completeOrderMutation.isPending ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <CheckCircle className="h-4 w-4 mr-1" />
-                                    Complete
-                                  </>
-                                )}
-                              </Button>
-                            )}
-                          </TableCell>
+                  <>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Order ID</TableHead>
+                          <TableHead>Customer</TableHead>
+                          <TableHead>Items</TableHead>
+                          <TableHead className="text-right">Total</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Time</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedOrders.map((order) => (
+                          <TableRow key={order.id}>
+                            <TableCell className="font-mono font-medium">
+                              {order.id}
+                            </TableCell>
+                            <TableCell>{order.customer_name}</TableCell>
+                            <TableCell className="max-w-[200px]">
+                              <span className="text-sm text-muted-foreground truncate block">
+                                {order.items
+                                  .map((i) => `${i.name} ×${i.quantity}`)
+                                  .join(", ")}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              ฿{order.total_amount.toFixed(0)}
+                            </TableCell>
+                            <TableCell>{getStatusBadge(order.status)}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {formatTime(order.created_at)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {order.status === "PENDING_PAYMENT" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    markPaidMutation.mutate(order.id)
+                                  }
+                                  disabled={markPaidMutation.isPending}
+                                >
+                                  {markPaidMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <CreditCard className="h-4 w-4 mr-1" />
+                                      Mark Paid
+                                    </>
+                                  )}
+                                </Button>
+                              )}
+                              {order.status === "PAID" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    completeOrderMutation.mutate(order.id)
+                                  }
+                                  disabled={completeOrderMutation.isPending}
+                                >
+                                  {completeOrderMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <CheckCircle className="h-4 w-4 mr-1" />
+                                      Complete
+                                    </>
+                                  )}
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between px-4 py-3 border-t">
+                        <div className="text-sm text-muted-foreground">
+                          Showing {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, filteredOrders.length)} of {filteredOrders.length} orders
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                            Previous
+                          </Button>
+                          <span className="text-sm text-muted-foreground px-2">
+                            Page {currentPage} of {totalPages}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                          >
+                            Next
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>

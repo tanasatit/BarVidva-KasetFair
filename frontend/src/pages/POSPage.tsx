@@ -7,24 +7,28 @@ import { MenuItemCard } from "@/components/pos/MenuItemCard";
 import { POSOrderSummary } from "@/components/pos/POSOrderSummary";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { History, Loader2 } from "lucide-react";
+import { History, Loader2, Utensils, GlassWater, Cookie, Package } from "lucide-react";
 import { getCurrentDateKey, cartToOrderItems } from "@/utils/orderUtils";
 import type { MenuItem, CartItem, CreateOrderRequest } from "@/types/api";
+import type { LucideIcon } from "lucide-react";
 
-// Category label mapping (English to Thai)
-const categoryLabels: Record<string, string> = {
-  food: "อาหาร",
-  Food: "อาหาร",
-  drink: "เครื่องดื่ม",
-  Drink: "เครื่องดื่ม",
-  drinks: "เครื่องดื่ม",
-  Drinks: "เครื่องดื่ม",
-  beverage: "เครื่องดื่ม",
-  Beverage: "เครื่องดื่ม",
-  snack: "ของว่าง",
-  Snack: "ของว่าง",
-  Other: "อื่นๆ",
-  other: "อื่นๆ",
+// Maximum quantity per item
+const MAX_QUANTITY_PER_ITEM = 10;
+
+// Category configuration with icons (English to Thai + icons)
+const categoryConfig: Record<string, { label: string; icon: LucideIcon }> = {
+  food: { label: "อาหาร", icon: Utensils },
+  Food: { label: "อาหาร", icon: Utensils },
+  drink: { label: "เครื่องดื่ม", icon: GlassWater },
+  Drink: { label: "เครื่องดื่ม", icon: GlassWater },
+  drinks: { label: "เครื่องดื่ม", icon: GlassWater },
+  Drinks: { label: "เครื่องดื่ม", icon: GlassWater },
+  beverage: { label: "เครื่องดื่ม", icon: GlassWater },
+  Beverage: { label: "เครื่องดื่ม", icon: GlassWater },
+  snack: { label: "ของว่าง", icon: Cookie },
+  Snack: { label: "ของว่าง", icon: Cookie },
+  Other: { label: "อื่นๆ", icon: Package },
+  other: { label: "อื่นๆ", icon: Package },
 };
 
 // Category sort order (lower = first)
@@ -47,8 +51,8 @@ const categorySortOrder: Record<string, number> = {
   อื่นๆ: 99,
 };
 
-const getCategoryLabel = (category: string): string => {
-  return categoryLabels[category] || category;
+const getCategoryConfig = (category: string): { label: string; icon: LucideIcon } => {
+  return categoryConfig[category] || { label: category, icon: Package };
 };
 
 const getCategorySortOrder = (category: string): number => {
@@ -62,7 +66,6 @@ export function POSPage() {
   const { data: menuItems, isLoading, error } = useMenu();
 
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [customerName, setCustomerName] = useState("");
 
   // Get unique categories from menu items, sorted by predefined order
   const categories = useMemo(() => {
@@ -103,6 +106,10 @@ export function POSPage() {
     setCart((prev) => {
       const existing = prev.find((i) => i.menu_item_id === item.id);
       if (existing) {
+        // Don't exceed max quantity
+        if (existing.quantity >= MAX_QUANTITY_PER_ITEM) {
+          return prev;
+        }
         return prev.map((i) =>
           i.menu_item_id === item.id ? { ...i, quantity: i.quantity + 1 } : i
         );
@@ -123,7 +130,7 @@ export function POSPage() {
   const handleIncrement = (itemId: number) => {
     setCart((prev) =>
       prev.map((item) =>
-        item.menu_item_id === itemId
+        item.menu_item_id === itemId && item.quantity < MAX_QUANTITY_PER_ITEM
           ? { ...item, quantity: item.quantity + 1 }
           : item
       )
@@ -151,7 +158,6 @@ export function POSPage() {
   // Clear cart
   const handleClear = () => {
     setCart([]);
-    setCustomerName("");
   };
 
   // Create order mutation
@@ -167,7 +173,7 @@ export function POSPage() {
   // Handle confirm/create order
   const handleConfirm = () => {
     const request: CreateOrderRequest = {
-      customer_name: customerName.trim(),
+      customer_name: "Walk-in",
       items: cartToOrderItems(cart),
       date_key: getCurrentDateKey(),
     };
@@ -249,15 +255,19 @@ export function POSPage() {
               }}
             >
               <TabsList className="mb-6">
-                {categories.map((cat) => (
-                  <TabsTrigger
-                    key={cat}
-                    value={cat}
-                    className="px-4 py-2 min-h-[40px] whitespace-nowrap flex items-center justify-center"
-                  >
-                    {getCategoryLabel(cat)}
-                  </TabsTrigger>
-                ))}
+                {categories.map((cat) => {
+                  const { label, icon: Icon } = getCategoryConfig(cat);
+                  return (
+                    <TabsTrigger
+                      key={cat}
+                      value={cat}
+                      className="px-4 py-2 min-h-[40px] whitespace-nowrap flex items-center justify-center gap-2"
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{label}</span>
+                    </TabsTrigger>
+                  );
+                })}
               </TabsList>
 
               {categories.map((cat) => (
@@ -298,8 +308,6 @@ export function POSPage() {
         <div className="w-[30%] border-l border-border bg-card p-4">
           <POSOrderSummary
             items={cart}
-            customerName={customerName}
-            onCustomerNameChange={setCustomerName}
             onIncrement={handleIncrement}
             onDecrement={handleDecrement}
             onRemove={handleRemove}

@@ -36,8 +36,8 @@ export function PaymentScreen() {
   // Mark as paid mutation
   const markPaidMutation = useMutation({
     mutationFn: () => posApi.markPaid(orderId!),
-    onSuccess: (updatedOrder) => {
-      navigate(`/success/${orderId}`, { state: { order: updatedOrder } });
+    onSuccess: () => {
+      navigate("/");
     },
   });
 

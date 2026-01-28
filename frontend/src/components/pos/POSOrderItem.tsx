@@ -2,6 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import type { CartItem } from "@/types/api";
 
+// Maximum quantity per item
+const MAX_QUANTITY_PER_ITEM = 10;
+
 interface POSOrderItemProps {
   item: CartItem;
   onIncrement: (itemId: number) => void;
@@ -11,6 +14,7 @@ interface POSOrderItemProps {
 
 export function POSOrderItem({ item, onIncrement, onDecrement, onRemove }: POSOrderItemProps) {
   const subtotal = item.price * item.quantity;
+  const isAtMaxQuantity = item.quantity >= MAX_QUANTITY_PER_ITEM;
 
   return (
     <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
@@ -37,6 +41,8 @@ export function POSOrderItem({ item, onIncrement, onDecrement, onRemove }: POSOr
             size="icon"
             className="h-8 w-8"
             onClick={() => onIncrement(item.menu_item_id)}
+            disabled={isAtMaxQuantity}
+            title={isAtMaxQuantity ? `Maximum ${MAX_QUANTITY_PER_ITEM} items` : undefined}
           >
             <Plus className="h-4 w-4" />
           </Button>
