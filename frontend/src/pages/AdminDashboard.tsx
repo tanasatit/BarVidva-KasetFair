@@ -629,7 +629,9 @@ function RecentActivity({ pending, queue, completed }: { pending: any[]; queue: 
           <div className="text-right">
             <p className="text-gray-900 font-medium">{formatPrice(order.total_amount)}</p>
             <p className="text-xs text-gray-400">
-              {new Date(order.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+              {order?.created_at
+                ? new Date(order.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+                : '-'}
             </p>
           </div>
         </div>
@@ -969,8 +971,8 @@ function OrdersTab() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       result = result.filter(order =>
-        order.id.toLowerCase().includes(query) ||
-        order.customer_name.toLowerCase().includes(query)
+        String(order.id).toLowerCase().includes(query) ||
+        (order.customer_name ?? '').toLowerCase().includes(query)
       );
     }
 
@@ -987,10 +989,16 @@ function OrdersTab() {
     // Sort
     result.sort((a, b) => {
       switch (sortBy) {
-        case 'date_desc':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        case 'date_asc':
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'date_desc': {
+          const tb = b?.created_at ? new Date(b.created_at).getTime() : 0;
+          const ta = a?.created_at ? new Date(a.created_at).getTime() : 0;
+          return tb - ta;
+        }
+        case 'date_asc': {
+          const ta = a?.created_at ? new Date(a.created_at).getTime() : 0;
+          const tb = b?.created_at ? new Date(b.created_at).getTime() : 0;
+          return ta - tb;
+        }
         case 'amount_desc':
           return b.total_amount - a.total_amount;
         case 'amount_asc':
@@ -1176,10 +1184,12 @@ function OrdersTab() {
                         <OrderStatusBadge status={order.status} />
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground text-sm">
-                        {new Date(order.created_at).toLocaleTimeString('th-TH', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {order?.created_at
+                          ? new Date(order.created_at).toLocaleTimeString('th-TH', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : '-'}
                       </TableCell>
                     </TableRow>
                   ))}

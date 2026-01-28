@@ -103,9 +103,10 @@ func main() {
 		}
 	}()
 
-	// Start server
-	log.Info().Str("port", port).Msg("Starting server")
-	if err := app.Listen(":" + port); err != nil {
+	// Start server - bind to 0.0.0.0 explicitly for Fly.io
+	addr := "0.0.0.0:" + port
+	log.Info().Str("addr", addr).Msg("Starting server")
+	if err := app.Listen(addr); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start server")
 	}
 }

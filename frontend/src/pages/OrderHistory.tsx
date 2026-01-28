@@ -157,8 +157,10 @@ export function OrderHistory() {
   };
 
   // Format time
-  const formatTime = (dateStr: string) => {
+  const formatTime = (dateStr?: string) => {
+    if (!dateStr) return "-";
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "-";
     return date.toLocaleTimeString("th-TH", {
       hour: "2-digit",
       minute: "2-digit",
@@ -296,7 +298,7 @@ export function OrderHistory() {
                             <TableCell className="font-mono font-medium">
                               {order.id}
                             </TableCell>
-                            <TableCell>{order.customer_name}</TableCell>
+                            <TableCell>{order.customer_name || "-"}</TableCell>
                             <TableCell className="max-w-[200px]">
                               <span className="text-sm text-muted-foreground truncate block">
                                 {(order.items || [])
