@@ -1,0 +1,40 @@
+# Fly.io configuration for Bar Vidva Backend API
+# Deploy: cd backend && fly deploy
+
+app = "barvidva-api"
+primary_region = "sin"  # Singapore (closest to Thailand)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  ENV = "production"
+  LOG_LEVEL = "info"
+  TZ = "Asia/Bangkok"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false  # Keep running for 9-day event
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 250
+    soft_limit = 200
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
+
+[checks]
+  [checks.alive]
+    type = "http"
+    port = 8080
+    path = "/health"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"

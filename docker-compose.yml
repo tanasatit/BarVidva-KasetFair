@@ -6,9 +6,9 @@ services:
     image: postgres:16-alpine
     container_name: barvidva-db
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-barvidva}
+      POSTGRES_USER: ${POSTGRES_USER:-barvidva}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-barvidva_dev_password}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/migrations:/docker-entrypoint-initdb.d
@@ -19,6 +19,43 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Backend API (optional - for full Docker dev)
+  backend:
+    build: ./backend
+    container_name: barvidva-api
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-barvidva}:${POSTGRES_PASSWORD:-barvidva_dev_password}@db:5432/${POSTGRES_DB:-barvidva}?sslmode=disable
+      PORT: 8080
+      ENV: development
+      LOG_LEVEL: debug
+      STAFF_PASSWORD: ${STAFF_PASSWORD:-staff123}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      ORDER_EXPIRY_MINUTES: ${ORDER_EXPIRY_MINUTES:-60}
+      EXPIRY_CHECK_INTERVAL_SECONDS: ${EXPIRY_CHECK_INTERVAL_SECONDS:-60}
+      TZ: Asia/Bangkok
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles:
+      - full
+
+  # Frontend (optional - for full Docker dev)
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8080/api/v1
+        VITE_PROMPTPAY_NUMBER: ${VITE_PROMPTPAY_NUMBER:-0812345678}
+    container_name: barvidva-web
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    profiles:
+      - full
 
 volumes:
   postgres_data:
