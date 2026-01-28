@@ -2,7 +2,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { POSPage } from '@/pages/POSPage';
 import { PaymentScreen } from '@/pages/PaymentScreen';
-import { SuccessScreen } from '@/pages/SuccessScreen';
 import { OrderHistory } from '@/pages/OrderHistory';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 
@@ -27,7 +26,6 @@ function App() {
 
           {/* Payment flow */}
           <Route path="/payment/:orderId" element={<PaymentScreen />} />
-          <Route path="/success/:orderId" element={<SuccessScreen />} />
 
           {/* Order history */}
           <Route path="/history" element={<OrderHistory />} />
