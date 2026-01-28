@@ -1,7 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/services/api';
 import { useAdminAuth } from '@/context/AdminContext';
-import type { CreateMenuItemRequest, UpdateMenuItemRequest, DateRange } from '@/types/api';
+import type { CreateMenuItemRequest, UpdateMenuItemRequest, DateRange, MenuItem, Order, OrdersByHour, PopularItem, DailyBreakdown } from '@/types/api';
+
+// Ensure data is always an array
+const ensureArray = <T>(data: T | T[] | null | undefined): T[] => {
+  if (Array.isArray(data)) return data;
+  return [];
+};
 
 // Query keys for admin operations
 export const adminKeys = {
@@ -41,6 +47,7 @@ export function useOrdersByHour(dateRange?: DateRange) {
       if (!password) throw new Error('Not authenticated');
       return adminApi.getOrdersByHour(password, dateRange);
     },
+    select: (data): OrdersByHour[] => ensureArray(data),
     enabled: isAuthenticated,
     refetchInterval: 60000,
     retry: 2,
@@ -57,6 +64,7 @@ export function usePopularItems(dateRange?: DateRange) {
       if (!password) throw new Error('Not authenticated');
       return adminApi.getPopularItems(password, dateRange);
     },
+    select: (data): PopularItem[] => ensureArray(data),
     enabled: isAuthenticated,
     refetchInterval: 60000,
     retry: 2,
@@ -73,6 +81,7 @@ export function useDailyBreakdown(dateRange?: DateRange) {
       if (!password) throw new Error('Not authenticated');
       return adminApi.getDailyBreakdown(password, dateRange);
     },
+    select: (data): DailyBreakdown[] => ensureArray(data),
     enabled: isAuthenticated,
     refetchInterval: 60000,
     retry: 2,
@@ -89,6 +98,7 @@ export function useAdminMenu() {
       if (!password) throw new Error('Not authenticated');
       return adminApi.getMenu(password);
     },
+    select: (data): MenuItem[] => ensureArray(data),
     enabled: isAuthenticated,
     retry: 2,
   });
@@ -155,6 +165,7 @@ export function useAllOrders() {
       if (!password) throw new Error('Not authenticated');
       return adminApi.getAllOrders(password);
     },
+    select: (data): Order[] => ensureArray(data),
     enabled: isAuthenticated,
     refetchInterval: 10000,
     retry: 2,

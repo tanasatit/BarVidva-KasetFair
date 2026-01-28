@@ -69,7 +69,7 @@ export function POSPage() {
 
   // Get unique categories from menu items, sorted by predefined order
   const categories = useMemo(() => {
-    if (!menuItems) return [];
+    if (!menuItems || !Array.isArray(menuItems)) return [];
     const cats = new Set(menuItems.map((item) => item.category || "Other"));
     return Array.from(cats).sort(
       (a, b) => getCategorySortOrder(a) - getCategorySortOrder(b)
@@ -83,7 +83,7 @@ export function POSPage() {
 
   // Group items by category
   const itemsByCategory = useMemo(() => {
-    if (!menuItems) return {};
+    if (!menuItems || !Array.isArray(menuItems)) return {};
     return menuItems.reduce(
       (acc, item) => {
         const cat = item.category || "Other";

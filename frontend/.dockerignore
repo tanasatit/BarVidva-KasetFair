@@ -1,8 +1,8 @@
 # Dependencies
 node_modules/
 
-# Build output
-dist/
+# Build output - NOT ignored since we copy pre-built dist
+# dist/
 
 # Environment files
 .env

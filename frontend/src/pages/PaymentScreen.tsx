@@ -98,7 +98,7 @@ export function PaymentScreen() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {order.items.map((item, index) => (
+                {(order.items || []).map((item, index) => (
                   <div key={index} className="flex justify-between text-sm">
                     <span>
                       {item.name} × {item.quantity}

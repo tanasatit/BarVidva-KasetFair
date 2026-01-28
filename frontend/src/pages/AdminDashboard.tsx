@@ -240,10 +240,12 @@ function OverviewTab() {
   // Transform orders by hour data
   const ordersByHour = useMemo(() => {
     const hours = Array.from({ length: 13 }, (_, i) => ({ hour: i + 9, count: 0 }));
-    ordersByHourData?.forEach(item => {
-      const hourData = hours.find(h => h.hour === item.hour);
-      if (hourData) hourData.count = item.count;
-    });
+    if (Array.isArray(ordersByHourData)) {
+      ordersByHourData.forEach(item => {
+        const hourData = hours.find(h => h.hour === item.hour);
+        if (hourData) hourData.count = item.count;
+      });
+    }
     return hours;
   }, [ordersByHourData]);
 
@@ -595,7 +597,11 @@ function PopularItemsList({ items }: PopularItemsListProps) {
 }
 
 function RecentActivity({ pending, queue, completed }: { pending: any[]; queue: any[]; completed: any[] }) {
-  const allOrders = [...pending, ...queue, ...completed]
+  const pendingArr = Array.isArray(pending) ? pending : [];
+  const queueArr = Array.isArray(queue) ? queue : [];
+  const completedArr = Array.isArray(completed) ? completed : [];
+
+  const allOrders = [...pendingArr, ...queueArr, ...completedArr]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
 
@@ -941,9 +947,12 @@ function OrdersTab() {
   const [customerFilter, setCustomerFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Combine all orders
+  // Combine all orders (ensure arrays)
   const allOrders = useMemo(() => {
-    return [...(pendingOrders || []), ...(queueOrders || []), ...(completedOrders || [])];
+    const pending = Array.isArray(pendingOrders) ? pendingOrders : [];
+    const queue = Array.isArray(queueOrders) ? queueOrders : [];
+    const completed = Array.isArray(completedOrders) ? completedOrders : [];
+    return [...pending, ...queue, ...completed];
   }, [pendingOrders, queueOrders, completedOrders]);
 
   // Get unique customers for filter dropdown
@@ -1157,7 +1166,7 @@ function OrdersTab() {
                       <TableCell className="text-muted-foreground">{order.customer_name}</TableCell>
                       <TableCell className="text-muted-foreground text-sm max-w-[200px]">
                         <span className="truncate block">
-                          {order.items.map(i => `${i.name} x${i.quantity}`).join(', ')}
+                          {(order.items || []).map(i => `${i.name} x${i.quantity}`).join(', ') || '-'}
                         </span>
                       </TableCell>
                       <TableCell className="text-right text-primary font-medium">
