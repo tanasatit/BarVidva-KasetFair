@@ -1,3 +1,4 @@
+import React from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
@@ -11,11 +12,14 @@ import type { Order } from "@/types/api";
 
 // Default PromptPay number (can be set via environment variable)
 const PROMPTPAY_NUMBER = import.meta.env.VITE_PROMPTPAY_NUMBER || "0812345678";
+const MAEMANEE_NUMBER = import.meta.env.VITE_MAEMANEE_NUMBER || "0899999999";
 
 export function PaymentScreen() {
   const { orderId } = useParams<{ orderId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const [paymentMethod, setPaymentMethod] = React.useState<"promptpay" | "maemanee">("promptpay");
 
   // Get order from navigation state or fetch from API
   const orderFromState = location.state?.order as Order | undefined;
@@ -28,9 +32,12 @@ export function PaymentScreen() {
 
   const order = orderFromState || orderFromApi;
 
+  const selectedNumber =
+    paymentMethod === "promptpay" ? PROMPTPAY_NUMBER : MAEMANEE_NUMBER;
+
   // Generate QR payload
   const qrPayload = order
-    ? generatePromptPayPayload(PROMPTPAY_NUMBER, order.total_amount)
+    ? generatePromptPayPayload(selectedNumber, order.total_amount)
     : "";
 
   // Mark as paid mutation
@@ -119,10 +126,34 @@ export function PaymentScreen() {
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle>Select Payment Method</CardTitle>
+            </CardHeader>
+            <CardContent className="flex gap-4">
+              <Button
+                variant={paymentMethod === "promptpay" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setPaymentMethod("promptpay")}
+              >
+                PromptPay
+              </Button>
+              <Button
+                variant={paymentMethod === "maemanee" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setPaymentMethod("maemanee")}
+              >
+                แม่มณี
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* QR Code Card */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-center">PromptPay QR Code</CardTitle>
+              <CardTitle className="text-center">
+                {paymentMethod === "promptpay" ? "PromptPay QR Code" : "แม่มณี QR Code"}
+              </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center">
               <div className="bg-white p-4 rounded-lg mb-4">
