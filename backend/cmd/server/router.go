@@ -11,7 +11,7 @@ import (
 )
 
 // setupRoutes configures all API routes for the application
-func setupRoutes(app *fiber.App, db *sqlx.DB, orderHandler *handlers.OrderHandler, menuHandler *handlers.MenuHandler, statsHandler *handlers.StatsHandler) {
+func setupRoutes(app *fiber.App, db *sqlx.DB, orderHandler *handlers.OrderHandler, menuHandler *handlers.MenuHandler, statsHandler *handlers.StatsHandler, adminHandler *handlers.AdminHandler) {
 	// Health check endpoint
 	app.Get("/health", func(c *fiber.Ctx) error {
 		// Check database
@@ -77,4 +77,8 @@ func setupRoutes(app *fiber.App, db *sqlx.DB, orderHandler *handlers.OrderHandle
 	admin.Post("/menu", menuHandler.CreateMenuItem)
 	admin.Put("/menu/:id", menuHandler.UpdateMenuItem)
 	admin.Delete("/menu/:id", menuHandler.DeleteMenuItem)
+
+	// Admin order management
+	admin.Get("/orders", adminHandler.GetAllOrders)
+	admin.Delete("/orders", adminHandler.DeleteOrders)
 }

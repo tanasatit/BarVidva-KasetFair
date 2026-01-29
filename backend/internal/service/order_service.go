@@ -19,7 +19,7 @@ type OrderService interface {
 	GetPendingPayment(ctx context.Context) ([]models.Order, error)
 	GetQueue(ctx context.Context) ([]models.Order, error)
 	GetCompleted(ctx context.Context) ([]models.Order, error)
-	VerifyPayment(ctx context.Context, id string) (*models.Order, error)
+	VerifyPayment(ctx context.Context, id string, paymentMethod *models.PaymentMethod) (*models.Order, error)
 	CompleteOrder(ctx context.Context, id string) (*models.Order, error)
 	CancelOrder(ctx context.Context, id string) error
 }
@@ -202,7 +202,7 @@ func (s *orderService) GetCompleted(ctx context.Context) ([]models.Order, error)
 }
 
 // VerifyPayment marks an order as paid and assigns a queue number
-func (s *orderService) VerifyPayment(ctx context.Context, id string) (*models.Order, error) {
+func (s *orderService) VerifyPayment(ctx context.Context, id string, paymentMethod *models.PaymentMethod) (*models.Order, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -224,7 +224,7 @@ func (s *orderService) VerifyPayment(ctx context.Context, id string) (*models.Or
 	}
 
 	// Verify payment and assign queue number
-	if err := s.orderRepo.VerifyPayment(ctx, id, queueNumber); err != nil {
+	if err := s.orderRepo.VerifyPayment(ctx, id, queueNumber, paymentMethod); err != nil {
 		return nil, fmt.Errorf("failed to verify payment: %w", err)
 	}
 

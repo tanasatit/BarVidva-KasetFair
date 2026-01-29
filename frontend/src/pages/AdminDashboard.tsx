@@ -11,6 +11,8 @@ import {
   useAdminStats,
   useOrdersByHour,
   useDailyBreakdown,
+  useDeleteOrders,
+  useDeleteAllOrders,
 } from '@/hooks/useAdmin';
 import {
   usePendingOrders,
@@ -369,6 +371,37 @@ function OverviewTab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Payment Method Breakdown */}
+      {(stats?.promptpay_count || 0) + (stats?.cash_count || 0) > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              รายได้ตามช่องทางชำระ {preset !== 'today' && <span className="text-sm font-normal text-muted-foreground">({dateLabel})</span>}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full" />
+                  <span className="text-sm text-blue-700 font-medium">PromptPay</span>
+                </div>
+                <p className="text-2xl font-bold text-blue-700">{formatPrice(stats?.promptpay_revenue || 0)}</p>
+                <p className="text-sm text-blue-600">{stats?.promptpay_count || 0} orders ({totalOrders > 0 ? Math.round(((stats?.promptpay_count || 0) / totalOrders) * 100) : 0}%)</p>
+              </div>
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full" />
+                  <span className="text-sm text-green-700 font-medium">Cash</span>
+                </div>
+                <p className="text-2xl font-bold text-green-700">{formatPrice(stats?.cash_revenue || 0)}</p>
+                <p className="text-sm text-green-600">{stats?.cash_count || 0} orders ({totalOrders > 0 ? Math.round(((stats?.cash_count || 0) / totalOrders) * 100) : 0}%)</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Popular Items Section */}
       <Card>
@@ -942,12 +975,20 @@ function OrdersTab() {
   const { data: queueOrders } = useQueueOrders();
   const { data: completedOrders } = useCompletedOrders();
 
+  // Delete mutations
+  const deleteOrdersMutation = useDeleteOrders();
+  const deleteAllOrdersMutation = useDeleteAllOrders();
+
   // Search, filter, sort, and pagination state
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('date_desc');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [customerFilter, setCustomerFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Selection state
+  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<'selected' | 'all' | null>(null);
 
   // Combine all orders (ensure arrays)
   const allOrders = useMemo(() => {
@@ -1054,6 +1095,52 @@ function OrdersTab() {
 
   const hasActiveFilters = searchQuery || statusFilter !== 'all' || customerFilter !== 'all';
 
+  // Toggle single order selection
+  const toggleOrder = (orderId: string) => {
+    const newSet = new Set(selectedOrders);
+    if (newSet.has(orderId)) {
+      newSet.delete(orderId);
+    } else {
+      newSet.add(orderId);
+    }
+    setSelectedOrders(newSet);
+  };
+
+  // Toggle all visible orders
+  const toggleAllVisible = () => {
+    if (selectedOrders.size === paginatedOrders.length && paginatedOrders.every(o => selectedOrders.has(o.id))) {
+      // Deselect all visible
+      const newSet = new Set(selectedOrders);
+      paginatedOrders.forEach(o => newSet.delete(o.id));
+      setSelectedOrders(newSet);
+    } else {
+      // Select all visible
+      const newSet = new Set(selectedOrders);
+      paginatedOrders.forEach(o => newSet.add(o.id));
+      setSelectedOrders(newSet);
+    }
+  };
+
+  // Check if all visible orders are selected
+  const allVisibleSelected = paginatedOrders.length > 0 && paginatedOrders.every(o => selectedOrders.has(o.id));
+
+  // Handle delete selected
+  const handleDeleteSelected = async () => {
+    if (selectedOrders.size === 0) return;
+    await deleteOrdersMutation.mutateAsync(Array.from(selectedOrders));
+    setSelectedOrders(new Set());
+    setShowDeleteConfirm(null);
+  };
+
+  // Handle delete all
+  const handleDeleteAll = async () => {
+    await deleteAllOrdersMutation.mutateAsync();
+    setSelectedOrders(new Set());
+    setShowDeleteConfirm(null);
+  };
+
+  const isDeleting = deleteOrdersMutation.isPending || deleteAllOrdersMutation.isPending;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -1136,6 +1223,86 @@ function OrdersTab() {
         </CardContent>
       </Card>
 
+      {/* Delete Actions Bar */}
+      {allOrders.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-muted-foreground">
+                  เลือกแล้ว: <span className="font-medium text-foreground">{selectedOrders.size}</span> รายการ
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDeleteConfirm('selected')}
+                  disabled={selectedOrders.size === 0 || isDeleting}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  ลบที่เลือก
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteConfirm('all')}
+                  disabled={allOrders.length === 0 || isDeleting}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  ลบทั้งหมด
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <Card className="border-destructive">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-destructive">
+                  {showDeleteConfirm === 'all'
+                    ? `ยืนยันลบออเดอร์ทั้งหมด ${allOrders.length} รายการ?`
+                    : `ยืนยันลบออเดอร์ ${selectedOrders.size} รายการที่เลือก?`}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  การดำเนินการนี้ไม่สามารถย้อนกลับได้
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDeleteConfirm(null)}
+                  disabled={isDeleting}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={showDeleteConfirm === 'all' ? handleDeleteAll : handleDeleteSelected}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      กำลังลบ...
+                    </>
+                  ) : (
+                    'ยืนยันลบ'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Orders Table */}
       {allOrders.length === 0 ? (
         <div className="text-center py-12">
@@ -1159,6 +1326,14 @@ function OrdersTab() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <input
+                        type="checkbox"
+                        checked={allVisibleSelected}
+                        onChange={toggleAllVisible}
+                        className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                      />
+                    </TableHead>
                     <TableHead>Order ID</TableHead>
                     <TableHead>ลูกค้า</TableHead>
                     <TableHead>รายการ</TableHead>
@@ -1169,7 +1344,15 @@ function OrdersTab() {
                 </TableHeader>
                 <TableBody>
                   {paginatedOrders.map((order) => (
-                    <TableRow key={order.id}>
+                    <TableRow key={order.id} className={selectedOrders.has(order.id) ? 'bg-primary/5' : ''}>
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={selectedOrders.has(order.id)}
+                          onChange={() => toggleOrder(order.id)}
+                          className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{order.id}</TableCell>
                       <TableCell className="text-muted-foreground">{order.customer_name}</TableCell>
                       <TableCell className="text-muted-foreground text-sm max-w-[200px]">

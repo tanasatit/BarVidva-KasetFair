@@ -227,7 +227,7 @@ func TestOrderService_VerifyPayment(t *testing.T) {
 					Status:  models.OrderStatusPendingPayment,
 				}, nil).Once()
 				repo.On("GetNextQueueNumber", mock.Anything, 1401).Return(1, nil)
-				repo.On("VerifyPayment", mock.Anything, "1401001", 1).Return(nil)
+				repo.On("VerifyPayment", mock.Anything, "1401001", 1, mock.Anything).Return(nil)
 				queueNum := 1
 				repo.On("GetByID", mock.Anything, "1401001").Return(&models.Order{
 					ID:          "1401001",
@@ -271,7 +271,7 @@ func TestOrderService_VerifyPayment(t *testing.T) {
 			tt.setupMock(orderRepo)
 
 			svc := NewOrderService(orderRepo, menuRepo, cache)
-			order, err := svc.VerifyPayment(context.Background(), tt.orderID)
+			order, err := svc.VerifyPayment(context.Background(), tt.orderID, nil)
 
 			if tt.wantErr {
 				assert.Error(t, err)

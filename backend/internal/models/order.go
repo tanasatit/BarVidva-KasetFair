@@ -13,18 +13,27 @@ const (
 	OrderStatusCancelled      OrderStatus = "CANCELLED"
 )
 
+// PaymentMethod represents the method used for payment
+type PaymentMethod string
+
+const (
+	PaymentMethodPromptPay PaymentMethod = "PROMPTPAY"
+	PaymentMethodCash      PaymentMethod = "CASH"
+)
+
 // Order represents a customer order
 type Order struct {
-	ID           string      `json:"id" db:"id" validate:"required,len=7"`
-	CustomerName string      `json:"customer_name" db:"customer_name" validate:"required,min=2,max=50"`
-	Items        []OrderItem `json:"items" validate:"required,min=1,dive"`
-	TotalAmount  float64     `json:"total_amount" db:"total_amount" validate:"required,gt=0"`
-	Status       OrderStatus `json:"status" db:"status"`
-	DateKey      int         `json:"date_key" db:"date_key" validate:"required,min=101,max=3112"`
-	QueueNumber  *int        `json:"queue_number,omitempty" db:"queue_number"`
-	CreatedAt    time.Time   `json:"created_at" db:"created_at"`
-	PaidAt       *time.Time  `json:"paid_at,omitempty" db:"paid_at"`
-	CompletedAt  *time.Time  `json:"completed_at,omitempty" db:"completed_at"`
+	ID            string         `json:"id" db:"id" validate:"required,len=7"`
+	CustomerName  string         `json:"customer_name" db:"customer_name" validate:"required,min=2,max=50"`
+	Items         []OrderItem    `json:"items" validate:"required,min=1,dive"`
+	TotalAmount   float64        `json:"total_amount" db:"total_amount" validate:"required,gt=0"`
+	Status        OrderStatus    `json:"status" db:"status"`
+	DateKey       int            `json:"date_key" db:"date_key" validate:"required,min=101,max=3112"`
+	QueueNumber   *int           `json:"queue_number,omitempty" db:"queue_number"`
+	PaymentMethod *PaymentMethod `json:"payment_method,omitempty" db:"payment_method"`
+	CreatedAt     time.Time      `json:"created_at" db:"created_at"`
+	PaidAt        *time.Time     `json:"paid_at,omitempty" db:"paid_at"`
+	CompletedAt   *time.Time     `json:"completed_at,omitempty" db:"completed_at"`
 }
 
 // OrderItem represents an item in an order

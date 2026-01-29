@@ -61,6 +61,7 @@ func main() {
 	orderHandler := handlers.NewOrderHandler(orderService)
 	menuHandler := handlers.NewMenuHandler(menuService)
 	statsHandler := handlers.NewStatsHandler(db)
+	adminHandler := handlers.NewAdminHandler(orderRepo)
 
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
@@ -71,7 +72,7 @@ func main() {
 	setupMiddleware(app)
 
 	// Setup routes
-	setupRoutes(app, db, orderHandler, menuHandler, statsHandler)
+	setupRoutes(app, db, orderHandler, menuHandler, statsHandler, adminHandler)
 
 	// Setup context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())

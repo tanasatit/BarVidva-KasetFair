@@ -171,3 +171,43 @@ export function useAllOrders() {
     retry: 2,
   });
 }
+
+export function useDeleteOrders() {
+  const queryClient = useQueryClient();
+  const { getPassword } = useAdminAuth();
+
+  return useMutation({
+    mutationFn: (orderIds: string[]) => {
+      const password = getPassword();
+      if (!password) throw new Error('Not authenticated');
+      return adminApi.deleteOrders(password, orderIds);
+    },
+    onSuccess: () => {
+      // Invalidate all order-related queries
+      queryClient.invalidateQueries({ queryKey: adminKeys.orders() });
+      queryClient.invalidateQueries({ queryKey: adminKeys.stats() });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['queue'] });
+    },
+  });
+}
+
+export function useDeleteAllOrders() {
+  const queryClient = useQueryClient();
+  const { getPassword } = useAdminAuth();
+
+  return useMutation({
+    mutationFn: () => {
+      const password = getPassword();
+      if (!password) throw new Error('Not authenticated');
+      return adminApi.deleteAllOrders(password);
+    },
+    onSuccess: () => {
+      // Invalidate all order-related queries
+      queryClient.invalidateQueries({ queryKey: adminKeys.orders() });
+      queryClient.invalidateQueries({ queryKey: adminKeys.stats() });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['queue'] });
+    },
+  });
+}

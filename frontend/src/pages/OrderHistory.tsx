@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  Settings,
 } from "lucide-react";
 import { orderApi, posApi } from "@/services/api";
 import type { OrderStatus } from "@/types/api";
@@ -178,20 +179,30 @@ export function OrderHistory() {
             </Button>
             <h1 className="text-xl font-bold text-foreground">Order History</h1>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              refetchQueue();
-              queryClient.invalidateQueries({ queryKey: ["orders"] });
-            }}
-            disabled={isLoading}
-          >
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
-            />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                refetchQueue();
+                queryClient.invalidateQueries({ queryKey: ["orders"] });
+              }}
+              disabled={isLoading}
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+              />
+              Refresh
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/admin")}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Admin
+            </Button>
+          </div>
         </div>
       </header>
 

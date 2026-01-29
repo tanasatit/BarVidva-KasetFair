@@ -19,10 +19,12 @@ type OrderRepository interface {
 	GetByStatus(ctx context.Context, status models.OrderStatus) ([]models.Order, error)
 	GetByStatuses(ctx context.Context, statuses []models.OrderStatus) ([]models.Order, error)
 	UpdateStatus(ctx context.Context, id string, status models.OrderStatus) error
-	VerifyPayment(ctx context.Context, id string, queueNumber int) error
+	VerifyPayment(ctx context.Context, id string, queueNumber int, paymentMethod *models.PaymentMethod) error
 	CompleteOrder(ctx context.Context, id string) error
 	GetNextQueueNumber(ctx context.Context, dateKey int) (int, error)
 	ExpireOldOrders(ctx context.Context, cutoff time.Time) (int64, error)
+	DeleteOrders(ctx context.Context, orderIDs []string) (int64, error)
+	DeleteAllOrders(ctx context.Context) (int64, error)
 }
 
 type orderRepository struct {
@@ -166,19 +168,24 @@ func (r *orderRepository) GetByStatus(ctx context.Context, status models.OrderSt
 }
 
 // GetByStatuses retrieves all orders with any of the specified statuses
+// If statuses is nil or empty, returns all orders
 func (r *orderRepository) GetByStatuses(ctx context.Context, statuses []models.OrderStatus) ([]models.Order, error) {
-	if len(statuses) == 0 {
-		return []models.Order{}, nil
-	}
-
-	query, args, err := sqlx.In(`SELECT * FROM orders WHERE status IN (?) ORDER BY created_at ASC`, statuses)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build query: %w", err)
-	}
-	query = r.db.Rebind(query)
-
 	var orders []models.Order
-	err = r.db.SelectContext(ctx, &orders, query, args...)
+	var err error
+
+	if len(statuses) == 0 {
+		// Get all orders
+		query := `SELECT * FROM orders ORDER BY created_at DESC`
+		err = r.db.SelectContext(ctx, &orders, query)
+	} else {
+		query, args, buildErr := sqlx.In(`SELECT * FROM orders WHERE status IN (?) ORDER BY created_at ASC`, statuses)
+		if buildErr != nil {
+			return nil, fmt.Errorf("failed to build query: %w", buildErr)
+		}
+		query = r.db.Rebind(query)
+		err = r.db.SelectContext(ctx, &orders, query, args...)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to get orders by statuses: %w", err)
 	}
@@ -217,13 +224,13 @@ func (r *orderRepository) UpdateStatus(ctx context.Context, id string, status mo
 }
 
 // VerifyPayment marks an order as paid and assigns a queue number
-func (r *orderRepository) VerifyPayment(ctx context.Context, id string, queueNumber int) error {
+func (r *orderRepository) VerifyPayment(ctx context.Context, id string, queueNumber int, paymentMethod *models.PaymentMethod) error {
 	query := `
 		UPDATE orders
-		SET status = $1, queue_number = $2, paid_at = NOW()
-		WHERE id = $3 AND status = $4
+		SET status = $1, queue_number = $2, paid_at = NOW(), payment_method = $3
+		WHERE id = $4 AND status = $5
 	`
-	result, err := r.db.ExecContext(ctx, query, models.OrderStatusPaid, queueNumber, id, models.OrderStatusPendingPayment)
+	result, err := r.db.ExecContext(ctx, query, models.OrderStatusPaid, queueNumber, paymentMethod, id, models.OrderStatusPendingPayment)
 	if err != nil {
 		return fmt.Errorf("failed to verify payment: %w", err)
 	}
@@ -293,6 +300,46 @@ func (r *orderRepository) ExpireOldOrders(ctx context.Context, cutoff time.Time)
 	result, err := r.db.ExecContext(ctx, query, models.OrderStatusCancelled, models.OrderStatusPendingPayment, cutoff)
 	if err != nil {
 		return 0, fmt.Errorf("failed to expire old orders: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	return rowsAffected, nil
+}
+
+// DeleteOrders deletes orders by their IDs
+func (r *orderRepository) DeleteOrders(ctx context.Context, orderIDs []string) (int64, error) {
+	if len(orderIDs) == 0 {
+		return 0, nil
+	}
+
+	query, args, err := sqlx.In(`DELETE FROM orders WHERE id IN (?)`, orderIDs)
+	if err != nil {
+		return 0, fmt.Errorf("failed to build query: %w", err)
+	}
+	query = r.db.Rebind(query)
+
+	result, err := r.db.ExecContext(ctx, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete orders: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	return rowsAffected, nil
+}
+
+// DeleteAllOrders deletes all orders from the database
+func (r *orderRepository) DeleteAllOrders(ctx context.Context) (int64, error) {
+	result, err := r.db.ExecContext(ctx, `DELETE FROM orders`)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete all orders: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()

@@ -11,6 +11,7 @@ import type {
   DateRange,
   CreateMenuItemRequest,
   UpdateMenuItemRequest,
+  PaymentMethod,
 } from '@/types/api';
 
 const api = axios.create({
@@ -75,8 +76,10 @@ export const posApi = {
     return data;
   },
 
-  markPaid: async (orderId: string): Promise<Order> => {
-    const { data } = await api.put<Order>(`/pos/orders/${orderId}/mark-paid`);
+  markPaid: async (orderId: string, paymentMethod?: PaymentMethod): Promise<Order> => {
+    const { data } = await api.put<Order>(`/pos/orders/${orderId}/mark-paid`, {
+      payment_method: paymentMethod,
+    });
     return data;
   },
 
@@ -234,6 +237,21 @@ export const adminApi = {
   getAllOrders: async (password: string): Promise<Order[]> => {
     const authApi = createAuthApi(password);
     const { data } = await authApi.get<Order[]>('/admin/orders');
+    return data;
+  },
+
+  // Delete orders
+  deleteOrders: async (password: string, orderIds: string[]): Promise<{ deleted_count: number }> => {
+    const authApi = createAuthApi(password);
+    const { data } = await authApi.delete<{ deleted_count: number }>('/admin/orders', {
+      data: { order_ids: orderIds },
+    });
+    return data;
+  },
+
+  deleteAllOrders: async (password: string): Promise<{ deleted_count: number }> => {
+    const authApi = createAuthApi(password);
+    const { data } = await authApi.delete<{ deleted_count: number }>('/admin/orders?all=true');
     return data;
   },
 };
