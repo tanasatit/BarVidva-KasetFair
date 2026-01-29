@@ -64,17 +64,18 @@ export function POSPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { data: menuItems, isLoading, error } = useMenu();
+  const safeMenuItems = Array.isArray(menuItems) ? menuItems : [];
 
   const [cart, setCart] = useState<CartItem[]>([]);
 
   // Get unique categories from menu items, sorted by predefined order
   const categories = useMemo(() => {
-    if (!menuItems) return [];
+    if (!menuItems || !Array.isArray(menuItems)) return [];
     const cats = new Set(menuItems.map((item) => item.category || "Other"));
     return Array.from(cats).sort(
       (a, b) => getCategorySortOrder(a) - getCategorySortOrder(b)
     );
-  }, [menuItems]);
+  }, [menuItems, safeMenuItems]);
 
   const activeCategory =
     searchParams.get("category") && categories.includes(searchParams.get("category")!)
@@ -83,7 +84,7 @@ export function POSPage() {
 
   // Group items by category
   const itemsByCategory = useMemo(() => {
-    if (!menuItems) return {};
+    if (!menuItems || !Array.isArray(menuItems)) return {};
     return menuItems.reduce(
       (acc, item) => {
         const cat = item.category || "Other";
@@ -93,7 +94,7 @@ export function POSPage() {
       },
       {} as Record<string, MenuItem[]>
     );
-  }, [menuItems]);
+  }, [safeMenuItems]);
 
   // Get quantity for an item in cart
   const getQuantity = (itemId: number) => {
@@ -292,7 +293,7 @@ export function POSPage() {
           ) : (
             // No categories - show all items in grid
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {menuItems?.map((item) => (
+              {safeMenuItems.map((item) => (
                 <MenuItemCard
                   key={item.id}
                   item={item}

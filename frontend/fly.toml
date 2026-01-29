@@ -1,0 +1,37 @@
+# Fly.io configuration for Bar Vidva Frontend
+# Deploy: cd frontend && fly deploy
+
+app = "barvidva-web"
+primary_region = "sin"  # Singapore (closest to Thailand)
+
+[build]
+  dockerfile = "Dockerfile"
+  [build.args]
+    VITE_API_URL = "https://barvidva-api.fly.dev/api/v1"
+    # VITE_PROMPTPAY_NUMBER will be set via fly secrets
+
+[http_service]
+  internal_port = 80
+  force_https = true
+  auto_stop_machines = false  # Keep running for 9-day event
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 250
+    soft_limit = 200
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256
+
+[checks]
+  [checks.alive]
+    type = "http"
+    port = 80
+    path = "/health"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"

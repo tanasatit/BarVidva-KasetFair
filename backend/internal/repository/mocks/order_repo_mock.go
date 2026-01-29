@@ -57,8 +57,8 @@ func (m *MockOrderRepository) UpdateStatus(ctx context.Context, id string, statu
 	return args.Error(0)
 }
 
-func (m *MockOrderRepository) VerifyPayment(ctx context.Context, id string, queueNumber int) error {
-	args := m.Called(ctx, id, queueNumber)
+func (m *MockOrderRepository) VerifyPayment(ctx context.Context, id string, queueNumber int, paymentMethod *models.PaymentMethod) error {
+	args := m.Called(ctx, id, queueNumber, paymentMethod)
 	return args.Error(0)
 }
 
@@ -74,5 +74,15 @@ func (m *MockOrderRepository) GetNextQueueNumber(ctx context.Context, day int) (
 
 func (m *MockOrderRepository) ExpireOldOrders(ctx context.Context, cutoff time.Time) (int64, error) {
 	args := m.Called(ctx, cutoff)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *MockOrderRepository) DeleteOrders(ctx context.Context, orderIDs []string) (int64, error) {
+	args := m.Called(ctx, orderIDs)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *MockOrderRepository) DeleteAllOrders(ctx context.Context) (int64, error) {
+	args := m.Called(ctx)
 	return args.Get(0).(int64), args.Error(1)
 }

@@ -61,6 +61,7 @@ func main() {
 	orderHandler := handlers.NewOrderHandler(orderService)
 	menuHandler := handlers.NewMenuHandler(menuService)
 	statsHandler := handlers.NewStatsHandler(db)
+	adminHandler := handlers.NewAdminHandler(orderRepo)
 
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
@@ -71,7 +72,7 @@ func main() {
 	setupMiddleware(app)
 
 	// Setup routes
-	setupRoutes(app, db, orderHandler, menuHandler, statsHandler)
+	setupRoutes(app, db, orderHandler, menuHandler, statsHandler, adminHandler)
 
 	// Setup context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
@@ -103,9 +104,10 @@ func main() {
 		}
 	}()
 
-	// Start server
-	log.Info().Str("port", port).Msg("Starting server")
-	if err := app.Listen(":" + port); err != nil {
+	// Start server - bind to 0.0.0.0 explicitly for Fly.io
+	addr := "0.0.0.0:" + port
+	log.Info().Str("addr", addr).Msg("Starting server")
+	if err := app.Listen(addr); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start server")
 	}
 }

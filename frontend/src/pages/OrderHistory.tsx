@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  Settings,
 } from "lucide-react";
 import { orderApi, posApi } from "@/services/api";
 import type { OrderStatus } from "@/types/api";
@@ -61,11 +62,15 @@ export function OrderHistory() {
     refetchInterval: 10000,
   });
 
-  // Combine all orders
+  // Combine all orders (ensure arrays)
+  const pendingArr = Array.isArray(pendingOrders) ? pendingOrders : [];
+  const queueArr = Array.isArray(queueOrders) ? queueOrders : [];
+  const completedArr = Array.isArray(completedOrders) ? completedOrders : [];
+
   const allOrders = [
-    ...(pendingOrders || []),
-    ...(queueOrders || []),
-    ...(completedOrders || []),
+    ...pendingArr,
+    ...queueArr,
+    ...completedArr,
   ].sort(
     (a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -76,8 +81,8 @@ export function OrderHistory() {
     activeTab === "all"
       ? allOrders
       : activeTab === "paid"
-        ? queueOrders || []
-        : completedOrders || [];
+        ? queueArr
+        : completedArr;
 
   // Mark order as complete mutation
   const completeOrderMutation = useMutation({
@@ -111,11 +116,11 @@ export function OrderHistory() {
   // Calculate stats
   const stats = {
     totalOrders: allOrders.length,
-    paidOrders: (queueOrders || []).length,
-    completedOrders: (completedOrders || []).length,
+    paidOrders: queueArr.length,
+    completedOrders: completedArr.length,
     totalRevenue: allOrders
       .filter((o) => o.status !== "CANCELLED" && o.status !== "PENDING_PAYMENT")
-      .reduce((sum, o) => sum + o.total_amount, 0),
+      .reduce((sum, o) => sum + (o.total_amount || 0), 0),
   };
 
   const isLoading = isLoadingQueue || isLoadingCompleted || isLoadingPending;
@@ -153,8 +158,10 @@ export function OrderHistory() {
   };
 
   // Format time
-  const formatTime = (dateStr: string) => {
+  const formatTime = (dateStr?: string) => {
+    if (!dateStr) return "-";
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "-";
     return date.toLocaleTimeString("th-TH", {
       hour: "2-digit",
       minute: "2-digit",
@@ -172,20 +179,30 @@ export function OrderHistory() {
             </Button>
             <h1 className="text-xl font-bold text-foreground">Order History</h1>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              refetchQueue();
-              queryClient.invalidateQueries({ queryKey: ["orders"] });
-            }}
-            disabled={isLoading}
-          >
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
-            />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                refetchQueue();
+                queryClient.invalidateQueries({ queryKey: ["orders"] });
+              }}
+              disabled={isLoading}
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+              />
+              Refresh
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/admin")}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Admin
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -292,12 +309,12 @@ export function OrderHistory() {
                             <TableCell className="font-mono font-medium">
                               {order.id}
                             </TableCell>
-                            <TableCell>{order.customer_name}</TableCell>
+                            <TableCell>{order.customer_name || "-"}</TableCell>
                             <TableCell className="max-w-[200px]">
                               <span className="text-sm text-muted-foreground truncate block">
-                                {order.items
+                                {(order.items || [])
                                   .map((i) => `${i.name} ×${i.quantity}`)
-                                  .join(", ")}
+                                  .join(", ") || "-"}
                               </span>
                             </TableCell>
                             <TableCell className="text-right font-medium">

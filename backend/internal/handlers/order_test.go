@@ -188,7 +188,7 @@ func TestOrderHandler_VerifyPayment(t *testing.T) {
 			orderID: "1401001",
 			setupMock: func(svc *mocks.MockOrderService) {
 				queueNum := 1
-				svc.On("VerifyPayment", mock.Anything, "1401001").Return(&models.Order{
+				svc.On("VerifyPayment", mock.Anything, "1401001", mock.Anything).Return(&models.Order{
 					ID:          "1401001",
 					Status:      models.OrderStatusPaid,
 					QueueNumber: &queueNum,
@@ -201,7 +201,7 @@ func TestOrderHandler_VerifyPayment(t *testing.T) {
 			name:    "Order not found",
 			orderID: "9999",
 			setupMock: func(svc *mocks.MockOrderService) {
-				svc.On("VerifyPayment", mock.Anything, "9999").Return(nil, errors.New("order not found"))
+				svc.On("VerifyPayment", mock.Anything, "9999", mock.Anything).Return(nil, errors.New("order not found"))
 			},
 			wantStatusCode: http.StatusNotFound,
 			wantBody:       "ORDER_NOT_FOUND",
@@ -210,7 +210,7 @@ func TestOrderHandler_VerifyPayment(t *testing.T) {
 			name:    "Invalid status",
 			orderID: "1401001",
 			setupMock: func(svc *mocks.MockOrderService) {
-				svc.On("VerifyPayment", mock.Anything, "1401001").Return(nil, errors.New("not in pending payment status"))
+				svc.On("VerifyPayment", mock.Anything, "1401001", mock.Anything).Return(nil, errors.New("not in pending payment status"))
 			},
 			wantStatusCode: http.StatusBadRequest,
 			wantBody:       "INVALID_STATUS",

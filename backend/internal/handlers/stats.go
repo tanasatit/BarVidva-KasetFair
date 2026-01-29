@@ -38,6 +38,10 @@ func (h *StatsHandler) GetStats(c *fiber.Ctx) error {
 		CompletedOrders       int     `db:"completed_orders"`
 		CancelledOrders       int     `db:"cancelled_orders"`
 		AvgCompletionTimeMins float64 `db:"avg_completion_time_mins"`
+		PromptPayRevenue      float64 `db:"promptpay_revenue"`
+		CashRevenue           float64 `db:"cash_revenue"`
+		PromptPayCount        int     `db:"promptpay_count"`
+		CashCount             int     `db:"cash_count"`
 	}
 
 	query := `
@@ -48,7 +52,11 @@ func (h *StatsHandler) GetStats(c *fiber.Ctx) error {
 			COUNT(*) FILTER (WHERE status = 'PAID' AND created_at::date >= $1 AND created_at::date <= $2) AS queue_length,
 			COUNT(*) FILTER (WHERE status = 'COMPLETED' AND created_at::date >= $1 AND created_at::date <= $2) AS completed_orders,
 			COUNT(*) FILTER (WHERE status = 'CANCELLED' AND created_at::date >= $1 AND created_at::date <= $2) AS cancelled_orders,
-			COALESCE(AVG(EXTRACT(EPOCH FROM (completed_at - paid_at)) / 60) FILTER (WHERE completed_at IS NOT NULL AND paid_at IS NOT NULL AND created_at::date >= $1 AND created_at::date <= $2), 0) AS avg_completion_time_mins
+			COALESCE(AVG(EXTRACT(EPOCH FROM (completed_at - paid_at)) / 60) FILTER (WHERE completed_at IS NOT NULL AND paid_at IS NOT NULL AND created_at::date >= $1 AND created_at::date <= $2), 0) AS avg_completion_time_mins,
+			COALESCE(SUM(total_amount) FILTER (WHERE created_at::date >= $1 AND created_at::date <= $2 AND status IN ('PAID', 'COMPLETED') AND payment_method = 'PROMPTPAY'), 0) AS promptpay_revenue,
+			COALESCE(SUM(total_amount) FILTER (WHERE created_at::date >= $1 AND created_at::date <= $2 AND status IN ('PAID', 'COMPLETED') AND payment_method = 'CASH'), 0) AS cash_revenue,
+			COUNT(*) FILTER (WHERE created_at::date >= $1 AND created_at::date <= $2 AND status IN ('PAID', 'COMPLETED') AND payment_method = 'PROMPTPAY') AS promptpay_count,
+			COUNT(*) FILTER (WHERE created_at::date >= $1 AND created_at::date <= $2 AND status IN ('PAID', 'COMPLETED') AND payment_method = 'CASH') AS cash_count
 		FROM orders
 	`
 
@@ -62,15 +70,19 @@ func (h *StatsHandler) GetStats(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"total_orders":           stats.TotalOrders,
-		"total_revenue":          stats.TotalRevenue,
-		"pending_orders":         stats.PendingOrders,
-		"queue_length":           stats.QueueLength,
-		"completed_orders":       stats.CompletedOrders,
-		"cancelled_orders":       stats.CancelledOrders,
+		"total_orders":             stats.TotalOrders,
+		"total_revenue":            stats.TotalRevenue,
+		"pending_orders":           stats.PendingOrders,
+		"queue_length":             stats.QueueLength,
+		"completed_orders":         stats.CompletedOrders,
+		"cancelled_orders":         stats.CancelledOrders,
 		"avg_completion_time_mins": stats.AvgCompletionTimeMins,
-		"start_date":             startDate,
-		"end_date":               endDate,
+		"promptpay_revenue":        stats.PromptPayRevenue,
+		"cash_revenue":             stats.CashRevenue,
+		"promptpay_count":          stats.PromptPayCount,
+		"cash_count":               stats.CashCount,
+		"start_date":               startDate,
+		"end_date":                 endDate,
 	})
 }
 

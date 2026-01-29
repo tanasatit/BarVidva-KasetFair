@@ -91,6 +91,11 @@ func (h *OrderHandler) GetCompletedOrders(c *fiber.Ctx) error {
 	return c.Status(http.StatusOK).JSON(orders)
 }
 
+// MarkPaidRequest is the request body for marking an order as paid
+type MarkPaidRequest struct {
+	PaymentMethod string `json:"payment_method"` // "PROMPTPAY" or "CASH"
+}
+
 // VerifyPayment handles PUT /api/v1/staff/orders/:id/verify
 func (h *OrderHandler) VerifyPayment(c *fiber.Ctx) error {
 	id := c.Params("id")
@@ -101,7 +106,24 @@ func (h *OrderHandler) VerifyPayment(c *fiber.Ctx) error {
 		})
 	}
 
-	order, err := h.orderService.VerifyPayment(c.Context(), id)
+	// Parse optional payment method from request body
+	var req MarkPaidRequest
+	_ = c.BodyParser(&req) // Ignore error - payment_method is optional for backwards compatibility
+
+	var paymentMethod *models.PaymentMethod
+	if req.PaymentMethod != "" {
+		pm := models.PaymentMethod(req.PaymentMethod)
+		// Validate payment method
+		if pm != models.PaymentMethodPromptPay && pm != models.PaymentMethodCash {
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid payment method. Must be PROMPTPAY or CASH",
+				"code":  "INVALID_REQUEST",
+			})
+		}
+		paymentMethod = &pm
+	}
+
+	order, err := h.orderService.VerifyPayment(c.Context(), id, paymentMethod)
 	if err != nil {
 		log.Error().Err(err).Str("order_id", id).Msg("Failed to verify payment")
 
@@ -124,9 +146,14 @@ func (h *OrderHandler) VerifyPayment(c *fiber.Ctx) error {
 		})
 	}
 
+	pmStr := ""
+	if order.PaymentMethod != nil {
+		pmStr = string(*order.PaymentMethod)
+	}
 	log.Info().
 		Str("order_id", order.ID).
 		Int("queue_number", *order.QueueNumber).
+		Str("payment_method", pmStr).
 		Msg("Payment verified")
 
 	return c.Status(http.StatusOK).JSON(order)

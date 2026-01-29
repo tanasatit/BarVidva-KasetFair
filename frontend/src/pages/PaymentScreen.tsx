@@ -1,21 +1,24 @@
+import React from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, CheckCircle, Loader2, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, Loader2, XCircle, Banknote, Smartphone } from "lucide-react";
 import { orderApi, posApi } from "@/services/api";
 import { generatePromptPayPayload } from "@/utils/promptpay";
-import type { Order } from "@/types/api";
+import type { Order, PaymentMethod } from "@/types/api";
 
-// Default PromptPay number (can be set via environment variable)
+// Default PromptPay number (10-digit phone number)
 const PROMPTPAY_NUMBER = import.meta.env.VITE_PROMPTPAY_NUMBER || "0812345678";
 
 export function PaymentScreen() {
   const { orderId } = useParams<{ orderId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>("PROMPTPAY");
 
   // Get order from navigation state or fetch from API
   const orderFromState = location.state?.order as Order | undefined;
@@ -28,14 +31,14 @@ export function PaymentScreen() {
 
   const order = orderFromState || orderFromApi;
 
-  // Generate QR payload
+  // Generate QR payload for PromptPay (10-digit phone number)
   const qrPayload = order
     ? generatePromptPayPayload(PROMPTPAY_NUMBER, order.total_amount)
     : "";
 
   // Mark as paid mutation
   const markPaidMutation = useMutation({
-    mutationFn: () => posApi.markPaid(orderId!),
+    mutationFn: () => posApi.markPaid(orderId!, paymentMethod),
     onSuccess: () => {
       navigate("/");
     },
@@ -98,10 +101,10 @@ export function PaymentScreen() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {order.items.map((item, index) => (
+                {(order.items || []).map((item, index) => (
                   <div key={index} className="flex justify-between text-sm">
                     <span>
-                      {item.name} × {item.quantity}
+                      {item.name} x {item.quantity}
                     </span>
                     <span className="font-medium">
                       ฿{(item.price * item.quantity).toFixed(0)}
@@ -119,19 +122,57 @@ export function PaymentScreen() {
             </CardContent>
           </Card>
 
-          {/* QR Code Card */}
+          {/* Payment Method Selection */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-center">PromptPay QR Code</CardTitle>
+              <CardTitle>Select Payment Method</CardTitle>
+            </CardHeader>
+            <CardContent className="flex gap-4">
+              <Button
+                variant={paymentMethod === "PROMPTPAY" ? "default" : "outline"}
+                className="flex-1 h-16"
+                onClick={() => setPaymentMethod("PROMPTPAY")}
+              >
+                <Smartphone className="h-5 w-5 mr-2" />
+                PromptPay
+              </Button>
+              <Button
+                variant={paymentMethod === "CASH" ? "default" : "outline"}
+                className="flex-1 h-16"
+                onClick={() => setPaymentMethod("CASH")}
+              >
+                <Banknote className="h-5 w-5 mr-2" />
+                Cash
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Payment Details Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center">
+                {paymentMethod === "PROMPTPAY" ? "PromptPay QR Code" : "Cash Payment"}
+              </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center">
-              <div className="bg-white p-4 rounded-lg mb-4">
-                <QRCodeSVG value={qrPayload} size={200} level="M" />
-              </div>
-              <p className="text-center text-muted-foreground text-sm mb-2">
-                Scan with mobile banking app
-              </p>
-              <p className="text-center font-bold text-xl text-primary">
+              {paymentMethod === "PROMPTPAY" ? (
+                <>
+                  <div className="bg-white p-4 rounded-lg mb-4">
+                    <QRCodeSVG value={qrPayload} size={200} level="M" />
+                  </div>
+                  <p className="text-center text-muted-foreground text-sm mb-2">
+                    Scan with mobile banking app
+                  </p>
+                </>
+              ) : (
+                <div className="py-8 text-center">
+                  <Banknote className="h-16 w-16 text-primary mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-2">
+                    Receive cash from customer
+                  </p>
+                </div>
+              )}
+              <p className="text-center font-bold text-2xl text-primary">
                 ฿{order.total_amount.toFixed(0)}
               </p>
             </CardContent>

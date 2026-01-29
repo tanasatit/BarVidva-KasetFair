@@ -49,8 +49,8 @@ func (m *MockOrderService) GetQueue(ctx context.Context) ([]models.Order, error)
 	return args.Get(0).([]models.Order), args.Error(1)
 }
 
-func (m *MockOrderService) VerifyPayment(ctx context.Context, id string) (*models.Order, error) {
-	args := m.Called(ctx, id)
+func (m *MockOrderService) VerifyPayment(ctx context.Context, id string, paymentMethod *models.PaymentMethod) (*models.Order, error) {
+	args := m.Called(ctx, id, paymentMethod)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

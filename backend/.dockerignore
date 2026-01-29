@@ -1,0 +1,30 @@
+# Dependencies and build artifacts
+server
+*.exe
+*.test
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+*_test.go
+/test/
+
+# Fly.io
+fly.toml

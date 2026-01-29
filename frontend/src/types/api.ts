@@ -25,6 +25,8 @@ export interface OrderItem {
   quantity: number;
 }
 
+export type PaymentMethod = 'PROMPTPAY' | 'CASH';
+
 export interface Order {
   id: string;
   customer_name: string;
@@ -36,6 +38,7 @@ export interface Order {
   completed_at?: string;
   queue_number?: number;
   date_key: number;
+  payment_method?: PaymentMethod | null;
 }
 
 export interface CreateOrderRequest {
@@ -71,6 +74,10 @@ export interface DashboardStats {
   completed_orders: number;
   cancelled_orders: number;
   avg_completion_time_mins: number;
+  promptpay_revenue: number;
+  cash_revenue: number;
+  promptpay_count: number;
+  cash_count: number;
   start_date: string;
   end_date: string;
 }
