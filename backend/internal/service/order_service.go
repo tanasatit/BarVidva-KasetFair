@@ -126,8 +126,8 @@ func (s *orderService) ValidateOrder(ctx context.Context, req *models.CreateOrde
 	// Validate each item exists and is available
 	for i, item := range req.Items {
 		// Check quantity
-		if item.Quantity < 1 || item.Quantity > 10 {
-			return fmt.Errorf("item %d: quantity must be 1-10", i)
+		if item.Quantity < 1 || item.Quantity > 30 {
+			return fmt.Errorf("item %d: quantity must be 1-30", i)
 		}
 
 		// Verify menu item exists and is available

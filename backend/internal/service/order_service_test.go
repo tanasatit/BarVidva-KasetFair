@@ -116,12 +116,12 @@ func TestOrderService_CreateOrder(t *testing.T) {
 				CustomerName: "John Doe",
 				DateKey:      1401,
 				Items: []models.OrderItem{
-					{MenuItemID: 1, Name: "French Fries S", Price: 40, Quantity: 11},
+					{MenuItemID: 1, Name: "French Fries S", Price: 40, Quantity: 31},
 				},
 			},
 			setupMock: func(orderRepo *mocks.MockOrderRepository, menuRepo *mocks.MockMenuRepository) {},
 			wantErr:   true,
-			errMsg:    "quantity must be 1-10",
+			errMsg:    "quantity must be 1-30",
 		},
 	}
 

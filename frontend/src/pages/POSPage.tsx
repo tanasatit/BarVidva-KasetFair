@@ -13,7 +13,7 @@ import type { MenuItem, CartItem, CreateOrderRequest } from "@/types/api";
 import type { LucideIcon } from "lucide-react";
 
 // Maximum quantity per item
-const MAX_QUANTITY_PER_ITEM = 10;
+const MAX_QUANTITY_PER_ITEM = 30;
 
 // Category configuration with icons (English to Thai + icons)
 const categoryConfig: Record<string, { label: string; icon: LucideIcon }> = {

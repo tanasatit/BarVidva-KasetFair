@@ -43,7 +43,7 @@ type OrderItem struct {
 	MenuItemID int     `json:"menu_item_id" db:"menu_item_id" validate:"required"`
 	Name       string  `json:"name" db:"name" validate:"required"`
 	Price      float64 `json:"price" db:"price" validate:"required,gt=0"`
-	Quantity   int     `json:"quantity" db:"quantity" validate:"required,min=1,max=10"`
+	Quantity   int     `json:"quantity" db:"quantity" validate:"required,min=1,max=30"`
 }
 
 // CreateOrderRequest represents the request body for creating an order

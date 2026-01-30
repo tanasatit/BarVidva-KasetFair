@@ -3,7 +3,7 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 import type { CartItem } from "@/types/api";
 
 // Maximum quantity per item
-const MAX_QUANTITY_PER_ITEM = 10;
+const MAX_QUANTITY_PER_ITEM = 30;
 
 interface POSOrderItemProps {
   item: CartItem;
