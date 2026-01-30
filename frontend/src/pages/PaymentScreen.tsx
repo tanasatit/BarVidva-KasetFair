@@ -1,17 +1,17 @@
 import React from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { QRCodeSVG } from "qrcode.react";
+// import { QRCodeSVG } from "qrcode.react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, CheckCircle, Loader2, XCircle, Banknote, Smartphone } from "lucide-react";
 import { orderApi, posApi } from "@/services/api";
-import { generatePromptPayPayload } from "@/utils/promptpay";
+// import { generatePromptPayPayload } from "@/utils/promptpay";
 import type { Order, PaymentMethod } from "@/types/api";
 
 // Default PromptPay number (10-digit phone number)
-const PROMPTPAY_NUMBER = import.meta.env.VITE_PROMPTPAY_NUMBER || "0812345678";
+// const PROMPTPAY_NUMBER = import.meta.env.VITE_PROMPTPAY_NUMBER || "0812345678";
 
 export function PaymentScreen() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -32,9 +32,9 @@ export function PaymentScreen() {
   const order = orderFromState || orderFromApi;
 
   // Generate QR payload for PromptPay (10-digit phone number)
-  const qrPayload = order
-    ? generatePromptPayPayload(PROMPTPAY_NUMBER, order.total_amount)
-    : "";
+  // const qrPayload = order
+  //   ? generatePromptPayPayload(PROMPTPAY_NUMBER, order.total_amount)
+  //   : "";
 
   // Mark as paid mutation
   const markPaidMutation = useMutation({
@@ -158,7 +158,7 @@ export function PaymentScreen() {
               {paymentMethod === "PROMPTPAY" ? (
                 <>
                   <div className="bg-white p-4 rounded-lg mb-4">
-                    <QRCodeSVG value={qrPayload} size={200} level="M" />
+                    {/* <QRCodeSVG value={qrPayload} size={200} level="M" /> */}
                   </div>
                   <p className="text-center text-muted-foreground text-sm mb-2">
                     Scan with mobile banking app
