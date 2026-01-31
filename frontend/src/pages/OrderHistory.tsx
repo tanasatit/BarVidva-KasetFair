@@ -131,13 +131,31 @@ export function OrderHistory() {
     setCurrentPage(1);
   };
 
-  // Calculate stats
+  // Check if date is today
+  const isToday = (dateStr?: string) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    const now = new Date();
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  };
+
+  // Calculate stats (TODAY only)
+  const todayOrders = allOrders.filter((o) => isToday(o.created_at));
+
   const stats = {
-    totalOrders: allOrders.length,
-    paidOrders: queueArr.length,
-    completedOrders: completedArr.length,
-    totalRevenue: allOrders
-      .filter((o) => o.status !== "CANCELLED" && o.status !== "PENDING_PAYMENT")
+    totalOrders: todayOrders.length,
+    paidOrders: todayOrders.filter((o) => o.status === "PAID").length,
+    completedOrders: todayOrders.filter((o) => o.status === "COMPLETED").length,
+    totalRevenue: todayOrders
+      .filter(
+        (o) =>
+          o.status !== "CANCELLED" &&
+          o.status !== "PENDING_PAYMENT"
+      )
       .reduce((sum, o) => sum + (o.total_amount || 0), 0),
   };
 
@@ -268,7 +286,7 @@ export function OrderHistory() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <DollarSign className="h-4 w-4" />
-                Revenue
+                Revenue (Today)
               </CardTitle>
             </CardHeader>
             <CardContent>
