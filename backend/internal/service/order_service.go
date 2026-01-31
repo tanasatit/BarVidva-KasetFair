@@ -17,8 +17,11 @@ type OrderService interface {
 	ValidateOrder(ctx context.Context, req *models.CreateOrderRequest) error
 	GetOrder(ctx context.Context, id string) (*models.Order, error)
 	GetPendingPayment(ctx context.Context) ([]models.Order, error)
+	GetPendingPaymentByCategory(ctx context.Context, category string) ([]models.Order, error)
 	GetQueue(ctx context.Context) ([]models.Order, error)
+	GetQueueByCategory(ctx context.Context, category string) ([]models.Order, error)
 	GetCompleted(ctx context.Context) ([]models.Order, error)
+	GetCompletedByCategory(ctx context.Context, category string) ([]models.Order, error)
 	VerifyPayment(ctx context.Context, id string, paymentMethod *models.PaymentMethod) (*models.Order, error)
 	CompleteOrder(ctx context.Context, id string) (*models.Order, error)
 	CancelOrder(ctx context.Context, id string) error
@@ -73,6 +76,18 @@ func (s *orderService) CreateOrder(ctx context.Context, req *models.CreateOrderR
 		totalAmount += item.Price * float64(item.Quantity)
 	}
 
+	// Determine category from request or from first item's menu item
+	var category *string
+	if req.Category != "" {
+		category = &req.Category
+	} else if len(req.Items) > 0 {
+		// Get category from first item's menu item
+		menuItem, err := s.menuRepo.GetByID(ctx, req.Items[0].MenuItemID)
+		if err == nil && menuItem.Category != nil {
+			category = menuItem.Category
+		}
+	}
+
 	// Create order object with server-generated sequential ID
 	order := &models.Order{
 		ID:           orderID,
@@ -81,6 +96,7 @@ func (s *orderService) CreateOrder(ctx context.Context, req *models.CreateOrderR
 		TotalAmount:  totalAmount,
 		Status:       models.OrderStatusPendingPayment,
 		DateKey:      req.DateKey,
+		Category:     category,
 		CreatedAt:    time.Now().UTC(),
 	}
 
@@ -126,8 +142,8 @@ func (s *orderService) ValidateOrder(ctx context.Context, req *models.CreateOrde
 	// Validate each item exists and is available
 	for i, item := range req.Items {
 		// Check quantity
-		if item.Quantity < 1 || item.Quantity > 30 {
-			return fmt.Errorf("item %d: quantity must be 1-30", i)
+		if item.Quantity < 1 || item.Quantity > 100 {
+			return fmt.Errorf("item %d: quantity must be 1-100", i)
 		}
 
 		// Verify menu item exists and is available
@@ -287,4 +303,43 @@ func (s *orderService) CancelOrder(ctx context.Context, id string) error {
 	}
 
 	return nil
+}
+
+// GetPendingPaymentByCategory retrieves orders waiting for payment filtered by category
+func (s *orderService) GetPendingPaymentByCategory(ctx context.Context, category string) ([]models.Order, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	orders, err := s.orderRepo.GetByStatusAndCategory(ctx, models.OrderStatusPendingPayment, category)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pending payment orders by category: %w", err)
+	}
+
+	return orders, nil
+}
+
+// GetQueueByCategory retrieves orders in the queue filtered by category
+func (s *orderService) GetQueueByCategory(ctx context.Context, category string) ([]models.Order, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	orders, err := s.orderRepo.GetByStatusAndCategory(ctx, models.OrderStatusPaid, category)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get queue by category: %w", err)
+	}
+
+	return orders, nil
+}
+
+// GetCompletedByCategory retrieves completed orders filtered by category
+func (s *orderService) GetCompletedByCategory(ctx context.Context, category string) ([]models.Order, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	orders, err := s.orderRepo.GetByStatusAndCategory(ctx, models.OrderStatusCompleted, category)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get completed orders by category: %w", err)
+	}
+
+	return orders, nil
 }

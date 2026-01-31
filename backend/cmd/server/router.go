@@ -39,6 +39,7 @@ func setupRoutes(app *fiber.App, db *sqlx.DB, orderHandler *handlers.OrderHandle
 
 	// Menu routes - customers can view menu
 	api.Get("/menu", menuHandler.GetMenu)
+	api.Get("/categories", menuHandler.GetCategories)
 
 	// Queue route - public so customers can see queue status
 	api.Get("/queue", orderHandler.GetQueue)

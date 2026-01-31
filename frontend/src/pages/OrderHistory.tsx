@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import {
   ArrowLeft,
   CheckCircle,
@@ -25,8 +26,9 @@ import {
   ChevronRight,
   CreditCard,
   Settings,
+  Filter,
 } from "lucide-react";
-import { orderApi, posApi } from "@/services/api";
+import { orderApi, posApi, menuApi } from "@/services/api";
 import type { OrderStatus } from "@/types/api";
 
 const ITEMS_PER_PAGE = 10;
@@ -38,6 +40,16 @@ export function OrderHistory() {
     "all"
   );
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  // Fetch categories for filter dropdown
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: menuApi.getCategories,
+  });
+
+  // Get category parameter for API calls
+  const categoryParam = selectedCategory === "all" ? undefined : selectedCategory;
 
   // Fetch orders using the queue endpoint (shows PAID orders) and completed
   const {
@@ -45,20 +57,20 @@ export function OrderHistory() {
     isLoading: isLoadingQueue,
     refetch: refetchQueue,
   } = useQuery({
-    queryKey: ["queue"],
-    queryFn: orderApi.getQueue,
+    queryKey: ["queue", selectedCategory],
+    queryFn: () => orderApi.getQueue(categoryParam),
     refetchInterval: 10000, // Refresh every 10 seconds
   });
 
   const { data: completedOrders, isLoading: isLoadingCompleted } = useQuery({
-    queryKey: ["orders", "completed"],
-    queryFn: () => posApi.getCompletedOrders(),
+    queryKey: ["orders", "completed", selectedCategory],
+    queryFn: () => posApi.getCompletedOrders(categoryParam),
     refetchInterval: 10000,
   });
 
   const { data: pendingOrders, isLoading: isLoadingPending } = useQuery({
-    queryKey: ["orders", "pending"],
-    queryFn: () => posApi.getPendingOrders(),
+    queryKey: ["orders", "pending", selectedCategory],
+    queryFn: () => posApi.getPendingOrders(categoryParam),
     refetchInterval: 10000,
   });
 
@@ -110,6 +122,12 @@ export function OrderHistory() {
   // Reset to page 1 when switching tabs
   const handleTabChange = (value: string) => {
     setActiveTab(value as typeof activeTab);
+    setCurrentPage(1);
+  };
+
+  // Reset to page 1 when changing category
+  const handleCategoryChange = (value: string) => {
+    setSelectedCategory(value);
     setCurrentPage(1);
   };
 
@@ -260,6 +278,37 @@ export function OrderHistory() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Category Filter */}
+        {categories && categories.length > 0 && (
+          <Card className="mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Label className="text-muted-foreground">Shop/Category:</Label>
+                </div>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                  className="px-3 py-1.5 text-sm border border-input rounded-md focus:ring-2 focus:ring-ring focus:border-transparent bg-background"
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+                {selectedCategory !== "all" && (
+                  <Badge variant="secondary" className="ml-2">
+                    Filtered: {selectedCategory}
+                  </Badge>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tabs */}
         <Tabs

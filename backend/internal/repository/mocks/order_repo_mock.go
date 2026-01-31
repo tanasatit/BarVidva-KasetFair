@@ -86,3 +86,19 @@ func (m *MockOrderRepository) DeleteAllOrders(ctx context.Context) (int64, error
 	args := m.Called(ctx)
 	return args.Get(0).(int64), args.Error(1)
 }
+
+func (m *MockOrderRepository) GetByStatusAndCategory(ctx context.Context, status models.OrderStatus, category string) ([]models.Order, error) {
+	args := m.Called(ctx, status, category)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.Order), args.Error(1)
+}
+
+func (m *MockOrderRepository) GetCategories(ctx context.Context) ([]string, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]string), args.Error(1)
+}

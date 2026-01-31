@@ -17,6 +17,7 @@ type MenuRepository interface {
 	Update(ctx context.Context, item *models.MenuItem) error
 	Delete(ctx context.Context, id int) error
 	CheckDuplicateName(ctx context.Context, name string, excludeID int) (bool, error)
+	GetCategories(ctx context.Context) ([]string, error)
 }
 
 type menuRepository struct {
@@ -137,4 +138,15 @@ func (r *menuRepository) CheckDuplicateName(ctx context.Context, name string, ex
 		return false, fmt.Errorf("failed to check duplicate name: %w", err)
 	}
 	return exists, nil
+}
+
+// GetCategories retrieves all unique categories from menu items
+func (r *menuRepository) GetCategories(ctx context.Context) ([]string, error) {
+	var categories []string
+	query := `SELECT DISTINCT category FROM menu_items WHERE category IS NOT NULL AND category != '' ORDER BY category`
+	err := r.db.SelectContext(ctx, &categories, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get categories: %w", err)
+	}
+	return categories, nil
 }

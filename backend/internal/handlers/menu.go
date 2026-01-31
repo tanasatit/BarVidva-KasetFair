@@ -227,3 +227,18 @@ func (h *MenuHandler) DeleteMenuItem(c *fiber.Ctx) error {
 		"message": "Menu item deleted successfully",
 	})
 }
+
+// GetCategories handles GET /api/v1/categories
+// Returns all unique categories from menu items
+func (h *MenuHandler) GetCategories(c *fiber.Ctx) error {
+	categories, err := h.menuService.GetCategories(c.Context())
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get categories")
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to get categories",
+			"code":  "INTERNAL_ERROR",
+		})
+	}
+
+	return c.Status(http.StatusOK).JSON(categories)
+}

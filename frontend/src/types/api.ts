@@ -39,6 +39,7 @@ export interface Order {
   queue_number?: number;
   date_key: number;
   payment_method?: PaymentMethod | null;
+  category?: string;
 }
 
 export interface CreateOrderRequest {
@@ -46,6 +47,7 @@ export interface CreateOrderRequest {
   customer_name: string;
   items: OrderItem[];
   date_key: number;
+  category?: string;
 }
 
 export interface ApiError {

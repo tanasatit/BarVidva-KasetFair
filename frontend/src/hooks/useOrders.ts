@@ -28,7 +28,7 @@ export function useOrder(id: string | null) {
 export function useQueue() {
   return useQuery({
     queryKey: ['queue'],
-    queryFn: orderApi.getQueue,
+    queryFn: () => orderApi.getQueue(),
     refetchInterval: 10000, // Poll every 10 seconds
     retry: 3,
   });

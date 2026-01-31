@@ -17,6 +17,7 @@ type OrderRepository interface {
 	CheckDuplicateID(ctx context.Context, id string) (bool, error)
 	GetNextSequence(ctx context.Context, dateKey int) (int, error)
 	GetByStatus(ctx context.Context, status models.OrderStatus) ([]models.Order, error)
+	GetByStatusAndCategory(ctx context.Context, status models.OrderStatus, category string) ([]models.Order, error)
 	GetByStatuses(ctx context.Context, statuses []models.OrderStatus) ([]models.Order, error)
 	UpdateStatus(ctx context.Context, id string, status models.OrderStatus) error
 	VerifyPayment(ctx context.Context, id string, queueNumber int, paymentMethod *models.PaymentMethod) error
@@ -25,6 +26,7 @@ type OrderRepository interface {
 	ExpireOldOrders(ctx context.Context, cutoff time.Time) (int64, error)
 	DeleteOrders(ctx context.Context, orderIDs []string) (int64, error)
 	DeleteAllOrders(ctx context.Context) (int64, error)
+	GetCategories(ctx context.Context) ([]string, error)
 }
 
 type orderRepository struct {
@@ -49,8 +51,8 @@ func (r *orderRepository) Create(ctx context.Context, order *models.Order) error
 
 	// Insert order
 	query := `
-		INSERT INTO orders (id, customer_name, total_amount, status, date_key, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO orders (id, customer_name, total_amount, status, date_key, category, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 	_, err = tx.ExecContext(ctx, query,
 		order.ID,
@@ -58,6 +60,7 @@ func (r *orderRepository) Create(ctx context.Context, order *models.Order) error
 		order.TotalAmount,
 		order.Status,
 		order.DateKey,
+		order.Category,
 		order.CreatedAt,
 	)
 	if err != nil {
@@ -348,4 +351,38 @@ func (r *orderRepository) DeleteAllOrders(ctx context.Context) (int64, error) {
 	}
 
 	return rowsAffected, nil
+}
+
+// GetByStatusAndCategory retrieves all orders with a specific status and category
+func (r *orderRepository) GetByStatusAndCategory(ctx context.Context, status models.OrderStatus, category string) ([]models.Order, error) {
+	var orders []models.Order
+	query := `SELECT * FROM orders WHERE status = $1 AND category = $2 ORDER BY created_at ASC`
+	err := r.db.SelectContext(ctx, &orders, query, status, category)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get orders by status and category: %w", err)
+	}
+
+	// Get items for each order
+	for i := range orders {
+		var items []models.OrderItem
+		itemsQuery := `SELECT * FROM order_items WHERE order_id = $1`
+		err = r.db.SelectContext(ctx, &items, itemsQuery, orders[i].ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get order items: %w", err)
+		}
+		orders[i].Items = items
+	}
+
+	return orders, nil
+}
+
+// GetCategories retrieves all unique categories from orders
+func (r *orderRepository) GetCategories(ctx context.Context) ([]string, error) {
+	var categories []string
+	query := `SELECT DISTINCT category FROM orders WHERE category IS NOT NULL AND category != '' ORDER BY category`
+	err := r.db.SelectContext(ctx, &categories, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get categories: %w", err)
+	}
+	return categories, nil
 }

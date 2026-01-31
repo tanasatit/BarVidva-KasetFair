@@ -59,6 +59,7 @@ import {
   Trash2,
   Upload,
   Image as ImageIcon,
+  Filter,
 } from 'lucide-react';
 
 type TabType = 'overview' | 'menu' | 'orders';
@@ -984,6 +985,7 @@ function OrdersTab() {
   const [sortBy, setSortBy] = useState<SortOption>('date_desc');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [customerFilter, setCustomerFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Selection state
@@ -998,11 +1000,11 @@ function OrdersTab() {
     return [...pending, ...queue, ...completed];
   }, [pendingOrders, queueOrders, completedOrders]);
 
-  // Get unique customers for filter dropdown
-  // const uniqueCustomers = useMemo(() => {
-  //   const customers = new Set(allOrders.map(order => order.customer_name));
-  //   return Array.from(customers).sort();
-  // }, [allOrders]);
+  // Get unique categories for filter dropdown
+  const uniqueCategories = useMemo(() => {
+    const categories = new Set(allOrders.map(order => order.category).filter(Boolean));
+    return Array.from(categories).sort() as string[];
+  }, [allOrders]);
 
   // Filter and sort orders
   const filteredOrders = useMemo(() => {
@@ -1025,6 +1027,11 @@ function OrdersTab() {
     // Customer filter
     if (customerFilter !== 'all') {
       result = result.filter(order => order.customer_name === customerFilter);
+    }
+
+    // Category filter
+    if (categoryFilter !== 'all') {
+      result = result.filter(order => order.category === categoryFilter);
     }
 
     // Sort
@@ -1054,7 +1061,7 @@ function OrdersTab() {
     });
 
     return result;
-  }, [allOrders, searchQuery, statusFilter, customerFilter, sortBy]);
+  }, [allOrders, searchQuery, statusFilter, customerFilter, categoryFilter, sortBy]);
 
   // Pagination
   const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
@@ -1084,16 +1091,23 @@ function OrdersTab() {
     setCurrentPage(1);
   };
 
+  // Handle category filter change
+  const handleCategoryFilterChange = (value: string) => {
+    setCategoryFilter(value);
+    setCurrentPage(1);
+  };
+
   // Clear all filters
   const clearFilters = () => {
     setSearchQuery('');
     setStatusFilter('all');
     setCustomerFilter('all');
+    setCategoryFilter('all');
     setSortBy('date_desc');
     setCurrentPage(1);
   };
 
-  const hasActiveFilters = searchQuery || statusFilter !== 'all' || customerFilter !== 'all';
+  const hasActiveFilters = searchQuery || statusFilter !== 'all' || customerFilter !== 'all' || categoryFilter !== 'all';
 
   // Toggle single order selection
   const toggleOrder = (orderId: string) => {
@@ -1206,6 +1220,26 @@ function OrdersTab() {
                 <option value="CANCELLED">ยกเลิก</option>
               </select>
             </div>
+
+            {/* Category Filter */}
+            {uniqueCategories.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-muted-foreground">ร้าน:</Label>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => handleCategoryFilterChange(e.target.value)}
+                  className="px-3 py-1.5 text-sm border border-input rounded-md focus:ring-2 focus:ring-ring focus:border-transparent bg-background"
+                >
+                  <option value="all">ทุกร้าน</option>
+                  {uniqueCategories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Clear Filters */}
             {hasActiveFilters && (

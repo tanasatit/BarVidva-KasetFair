@@ -71,11 +71,33 @@ func (m *MockOrderService) CancelOrder(ctx context.Context, id string) error {
 }
 
 func (m *MockOrderService) GetCompleted(ctx context.Context) ([]models.Order, error) {
-    args := m.Called(ctx)
+	args := m.Called(ctx)
+	if args.Get(0) != nil {
+		return args.Get(0).([]models.Order), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
 
-    if args.Get(0) != nil {
-        return args.Get(0).([]models.Order), args.Error(1)
-    }
+func (m *MockOrderService) GetPendingPaymentByCategory(ctx context.Context, category string) ([]models.Order, error) {
+	args := m.Called(ctx, category)
+	if args.Get(0) != nil {
+		return args.Get(0).([]models.Order), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
 
-    return nil, args.Error(1)
+func (m *MockOrderService) GetQueueByCategory(ctx context.Context, category string) ([]models.Order, error) {
+	args := m.Called(ctx, category)
+	if args.Get(0) != nil {
+		return args.Get(0).([]models.Order), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockOrderService) GetCompletedByCategory(ctx context.Context, category string) ([]models.Order, error) {
+	args := m.Called(ctx, category)
+	if args.Get(0) != nil {
+		return args.Get(0).([]models.Order), args.Error(1)
+	}
+	return nil, args.Error(1)
 }

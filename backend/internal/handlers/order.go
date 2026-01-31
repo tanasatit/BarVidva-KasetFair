@@ -50,10 +50,21 @@ func (h *OrderHandler) GetOrder(c *fiber.Ctx) error {
 }
 
 // GetPendingPayment handles GET /api/v1/staff/orders/pending
+// Supports optional ?category= query param for filtering
 func (h *OrderHandler) GetPendingPayment(c *fiber.Ctx) error {
-	orders, err := h.orderService.GetPendingPayment(c.Context())
+	category := c.Query("category")
+
+	var orders []models.Order
+	var err error
+
+	if category != "" {
+		orders, err = h.orderService.GetPendingPaymentByCategory(c.Context(), category)
+	} else {
+		orders, err = h.orderService.GetPendingPayment(c.Context())
+	}
+
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get pending payment orders")
+		log.Error().Err(err).Str("category", category).Msg("Failed to get pending payment orders")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to get pending payment orders",
 			"code":  "INTERNAL_ERROR",
@@ -63,11 +74,22 @@ func (h *OrderHandler) GetPendingPayment(c *fiber.Ctx) error {
 	return c.Status(http.StatusOK).JSON(orders)
 }
 
-// GetQueue handles GET /api/v1/staff/queue
+// GetQueue handles GET /api/v1/queue or /api/v1/staff/queue
+// Supports optional ?category= query param for filtering
 func (h *OrderHandler) GetQueue(c *fiber.Ctx) error {
-	orders, err := h.orderService.GetQueue(c.Context())
+	category := c.Query("category")
+
+	var orders []models.Order
+	var err error
+
+	if category != "" {
+		orders, err = h.orderService.GetQueueByCategory(c.Context(), category)
+	} else {
+		orders, err = h.orderService.GetQueue(c.Context())
+	}
+
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get queue")
+		log.Error().Err(err).Str("category", category).Msg("Failed to get queue")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to get queue",
 			"code":  "INTERNAL_ERROR",
@@ -78,10 +100,21 @@ func (h *OrderHandler) GetQueue(c *fiber.Ctx) error {
 }
 
 // GetCompletedOrders handles GET /api/v1/staff/orders/completed
+// Supports optional ?category= query param for filtering
 func (h *OrderHandler) GetCompletedOrders(c *fiber.Ctx) error {
-	orders, err := h.orderService.GetCompleted(c.Context())
+	category := c.Query("category")
+
+	var orders []models.Order
+	var err error
+
+	if category != "" {
+		orders, err = h.orderService.GetCompletedByCategory(c.Context(), category)
+	} else {
+		orders, err = h.orderService.GetCompleted(c.Context())
+	}
+
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get completed orders")
+		log.Error().Err(err).Str("category", category).Msg("Failed to get completed orders")
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to get completed orders",
 			"code":  "INTERNAL_ERROR",

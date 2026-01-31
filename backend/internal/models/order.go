@@ -31,6 +31,7 @@ type Order struct {
 	DateKey       int            `json:"date_key" db:"date_key" validate:"required,min=101,max=3112"`
 	QueueNumber   *int           `json:"queue_number,omitempty" db:"queue_number"`
 	PaymentMethod *PaymentMethod `json:"payment_method,omitempty" db:"payment_method"`
+	Category      *string        `json:"category,omitempty" db:"category"`
 	CreatedAt     time.Time      `json:"created_at" db:"created_at"`
 	PaidAt        *time.Time     `json:"paid_at,omitempty" db:"paid_at"`
 	CompletedAt   *time.Time     `json:"completed_at,omitempty" db:"completed_at"`
@@ -43,7 +44,7 @@ type OrderItem struct {
 	MenuItemID int     `json:"menu_item_id" db:"menu_item_id" validate:"required"`
 	Name       string  `json:"name" db:"name" validate:"required"`
 	Price      float64 `json:"price" db:"price" validate:"required,gt=0"`
-	Quantity   int     `json:"quantity" db:"quantity" validate:"required,min=1,max=30"`
+	Quantity   int     `json:"quantity" db:"quantity" validate:"required,min=1,max=100"`
 }
 
 // CreateOrderRequest represents the request body for creating an order
@@ -53,4 +54,5 @@ type CreateOrderRequest struct {
 	CustomerName string      `json:"customer_name" validate:"required,min=2,max=50"`
 	Items        []OrderItem `json:"items" validate:"required,min=1,dive"`
 	DateKey      int         `json:"date_key" validate:"required,min=101,max=3112"`
+	Category     string      `json:"category,omitempty"`
 }

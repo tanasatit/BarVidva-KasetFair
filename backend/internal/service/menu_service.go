@@ -16,6 +16,7 @@ type MenuService interface {
 	Create(ctx context.Context, item *models.MenuItem) (*models.MenuItem, error)
 	Update(ctx context.Context, item *models.MenuItem) (*models.MenuItem, error)
 	Delete(ctx context.Context, id int) error
+	GetCategories(ctx context.Context) ([]string, error)
 }
 
 type menuService struct {
@@ -136,4 +137,16 @@ func (s *menuService) validateMenuItem(item *models.MenuItem) error {
 		return fmt.Errorf("price must be between 0.01 and 10000")
 	}
 	return nil
+}
+
+// GetCategories retrieves all unique categories from menu items
+func (s *menuService) GetCategories(ctx context.Context) ([]string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	categories, err := s.menuRepo.GetCategories(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get categories: %w", err)
+	}
+	return categories, nil
 }

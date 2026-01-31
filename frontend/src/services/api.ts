@@ -44,6 +44,11 @@ export const menuApi = {
     });
     return data;
   },
+
+  getCategories: async (): Promise<string[]> => {
+    const { data } = await api.get<string[]>('/categories');
+    return data;
+  },
 };
 
 // Order API
@@ -58,21 +63,27 @@ export const orderApi = {
     return data;
   },
 
-  getQueue: async (): Promise<Order[]> => {
-    const { data } = await api.get<Order[]>('/queue');
+  getQueue: async (category?: string): Promise<Order[]> => {
+    const { data } = await api.get<Order[]>('/queue', {
+      params: category ? { category } : undefined,
+    });
     return data;
   },
 };
 
 // POS API (public routes for staff-only POS system)
 export const posApi = {
-  getPendingOrders: async (): Promise<Order[]> => {
-    const { data } = await api.get<Order[]>('/pos/orders/pending');
+  getPendingOrders: async (category?: string): Promise<Order[]> => {
+    const { data } = await api.get<Order[]>('/pos/orders/pending', {
+      params: category ? { category } : undefined,
+    });
     return data;
   },
 
-  getCompletedOrders: async (): Promise<Order[]> => {
-    const { data } = await api.get<Order[]>('/pos/orders/completed');
+  getCompletedOrders: async (category?: string): Promise<Order[]> => {
+    const { data } = await api.get<Order[]>('/pos/orders/completed', {
+      params: category ? { category } : undefined,
+    });
     return data;
   },
 
