@@ -431,11 +431,6 @@ export function OrderHistory() {
             )}
           </div>
 
-          {/* Today Only Notice */}
-          <div className="mb-4 text-sm text-muted-foreground">
-            Showing orders from today only. Data resets at midnight.
-          </div>
-
           <TabsContent value={activeTab}>
             <Card>
               <CardContent className="p-0">

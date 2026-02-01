@@ -27,7 +27,7 @@ func TestOrderHandler_CreateOrder(t *testing.T) {
 		{
 			name: "Successful order creation",
 			requestBody: models.CreateOrderRequest{
-				ID:           "1401001",
+				ID:           "14010001",
 				CustomerName: "John Doe",
 				DateKey:      1401,
 				Items: []models.OrderItem{
@@ -36,7 +36,7 @@ func TestOrderHandler_CreateOrder(t *testing.T) {
 			},
 			setupMock: func(svc *mocks.MockOrderService) {
 				svc.On("CreateOrder", mock.Anything, mock.AnythingOfType("*models.CreateOrderRequest")).Return(&models.Order{
-					ID:           "1401001",
+					ID:           "14010001",
 					CustomerName: "John Doe",
 					TotalAmount:  80,
 					Status:       models.OrderStatusPendingPayment,
@@ -44,7 +44,7 @@ func TestOrderHandler_CreateOrder(t *testing.T) {
 				}, nil)
 			},
 			wantStatusCode: http.StatusCreated,
-			wantBody:       "1401001",
+			wantBody:       "14010001",
 		},
 		{
 			name:           "Invalid JSON",
@@ -56,7 +56,7 @@ func TestOrderHandler_CreateOrder(t *testing.T) {
 		{
 			name: "Validation error",
 			requestBody: models.CreateOrderRequest{
-				ID:           "1401001",
+				ID:           "14010001",
 				CustomerName: "J",
 				DateKey:      1401,
 				Items:        []models.OrderItem{},
@@ -71,7 +71,7 @@ func TestOrderHandler_CreateOrder(t *testing.T) {
 		{
 			name: "Duplicate order",
 			requestBody: models.CreateOrderRequest{
-				ID:           "1401001",
+				ID:           "14010001",
 				CustomerName: "John Doe",
 				DateKey:      1401,
 				Items: []models.OrderItem{
@@ -80,7 +80,7 @@ func TestOrderHandler_CreateOrder(t *testing.T) {
 			},
 			setupMock: func(svc *mocks.MockOrderService) {
 				svc.On("CreateOrder", mock.Anything, mock.AnythingOfType("*models.CreateOrderRequest")).
-					Return(nil, errors.New("order ID already exists: 1401001"))
+					Return(nil, errors.New("order ID already exists: 14010001"))
 			},
 			wantStatusCode: http.StatusConflict,
 			wantBody:       "DUPLICATE_ORDER",
@@ -129,16 +129,16 @@ func TestOrderHandler_GetOrder(t *testing.T) {
 	}{
 		{
 			name:    "Order found",
-			orderID: "1401001",
+			orderID: "14010001",
 			setupMock: func(svc *mocks.MockOrderService) {
-				svc.On("GetOrder", mock.Anything, "1401001").Return(&models.Order{
-					ID:           "1401001",
+				svc.On("GetOrder", mock.Anything, "14010001").Return(&models.Order{
+					ID:           "14010001",
 					CustomerName: "John Doe",
 					Status:       models.OrderStatusPendingPayment,
 				}, nil)
 			},
 			wantStatusCode: http.StatusOK,
-			wantBody:       "1401001",
+			wantBody:       "14010001",
 		},
 		{
 			name:    "Order not found",
@@ -185,11 +185,11 @@ func TestOrderHandler_VerifyPayment(t *testing.T) {
 	}{
 		{
 			name:    "Successful verification",
-			orderID: "1401001",
+			orderID: "14010001",
 			setupMock: func(svc *mocks.MockOrderService) {
 				queueNum := 1
-				svc.On("VerifyPayment", mock.Anything, "1401001", mock.Anything).Return(&models.Order{
-					ID:          "1401001",
+				svc.On("VerifyPayment", mock.Anything, "14010001", mock.Anything).Return(&models.Order{
+					ID:          "14010001",
 					Status:      models.OrderStatusPaid,
 					QueueNumber: &queueNum,
 				}, nil)
@@ -208,9 +208,9 @@ func TestOrderHandler_VerifyPayment(t *testing.T) {
 		},
 		{
 			name:    "Invalid status",
-			orderID: "1401001",
+			orderID: "14010001",
 			setupMock: func(svc *mocks.MockOrderService) {
-				svc.On("VerifyPayment", mock.Anything, "1401001", mock.Anything).Return(nil, errors.New("not in pending payment status"))
+				svc.On("VerifyPayment", mock.Anything, "14010001", mock.Anything).Return(nil, errors.New("not in pending payment status"))
 			},
 			wantStatusCode: http.StatusBadRequest,
 			wantBody:       "INVALID_STATUS",
@@ -251,10 +251,10 @@ func TestOrderHandler_CompleteOrder(t *testing.T) {
 	}{
 		{
 			name:    "Successful completion",
-			orderID: "1401001",
+			orderID: "14010001",
 			setupMock: func(svc *mocks.MockOrderService) {
-				svc.On("CompleteOrder", mock.Anything, "1401001").Return(&models.Order{
-					ID:     "1401001",
+				svc.On("CompleteOrder", mock.Anything, "14010001").Return(&models.Order{
+					ID:     "14010001",
 					Status: models.OrderStatusCompleted,
 				}, nil)
 			},
@@ -263,9 +263,9 @@ func TestOrderHandler_CompleteOrder(t *testing.T) {
 		},
 		{
 			name:    "Not in paid status",
-			orderID: "1401001",
+			orderID: "14010001",
 			setupMock: func(svc *mocks.MockOrderService) {
-				svc.On("CompleteOrder", mock.Anything, "1401001").Return(nil, errors.New("not in paid status"))
+				svc.On("CompleteOrder", mock.Anything, "14010001").Return(nil, errors.New("not in paid status"))
 			},
 			wantStatusCode: http.StatusBadRequest,
 			wantBody:       "INVALID_STATUS",
@@ -306,18 +306,18 @@ func TestOrderHandler_CancelOrder(t *testing.T) {
 	}{
 		{
 			name:    "Successful cancellation",
-			orderID: "1401001",
+			orderID: "14010001",
 			setupMock: func(svc *mocks.MockOrderService) {
-				svc.On("CancelOrder", mock.Anything, "1401001").Return(nil)
+				svc.On("CancelOrder", mock.Anything, "14010001").Return(nil)
 			},
 			wantStatusCode: http.StatusOK,
 			wantBody:       "cancelled successfully",
 		},
 		{
 			name:    "Cannot cancel paid order",
-			orderID: "1401001",
+			orderID: "14010001",
 			setupMock: func(svc *mocks.MockOrderService) {
-				svc.On("CancelOrder", mock.Anything, "1401001").Return(errors.New("can only cancel orders with pending payment status"))
+				svc.On("CancelOrder", mock.Anything, "14010001").Return(errors.New("can only cancel orders with pending payment status"))
 			},
 			wantStatusCode: http.StatusBadRequest,
 			wantBody:       "INVALID_STATUS",
@@ -353,8 +353,8 @@ func TestOrderHandler_GetQueue(t *testing.T) {
 
 	queueNum1, queueNum2 := 1, 2
 	mockService.On("GetQueue", mock.Anything).Return([]models.Order{
-		{ID: "1401001", Status: models.OrderStatusPaid, QueueNumber: &queueNum1},
-		{ID: "1401002", Status: models.OrderStatusPaid, QueueNumber: &queueNum2},
+		{ID: "14010001", Status: models.OrderStatusPaid, QueueNumber: &queueNum1},
+		{ID: "14010002", Status: models.OrderStatusPaid, QueueNumber: &queueNum2},
 	}, nil)
 
 	handler := NewOrderHandler(mockService)
@@ -369,8 +369,8 @@ func TestOrderHandler_GetQueue(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	respBody, _ := io.ReadAll(resp.Body)
-	assert.Contains(t, string(respBody), "1401001")
-	assert.Contains(t, string(respBody), "1401002")
+	assert.Contains(t, string(respBody), "14010001")
+	assert.Contains(t, string(respBody), "14010002")
 
 	mockService.AssertExpectations(t)
 }
@@ -379,8 +379,8 @@ func TestOrderHandler_GetPendingPayment(t *testing.T) {
 	mockService := new(mocks.MockOrderService)
 
 	mockService.On("GetPendingPayment", mock.Anything).Return([]models.Order{
-		{ID: "1401001", Status: models.OrderStatusPendingPayment},
-		{ID: "1401002", Status: models.OrderStatusPendingPayment},
+		{ID: "14010001", Status: models.OrderStatusPendingPayment},
+		{ID: "14010002", Status: models.OrderStatusPendingPayment},
 	}, nil)
 
 	handler := NewOrderHandler(mockService)

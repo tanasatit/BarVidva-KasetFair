@@ -21,7 +21,7 @@ func TestGenerateOrderID(t *testing.T) {
 			dayOfMonth: 1,
 			month:      1,
 			sequence:   1,
-			want:       "0101001",
+			want:       "01010001",
 			wantErr:    false,
 		},
 		{
@@ -29,7 +29,7 @@ func TestGenerateOrderID(t *testing.T) {
 			dayOfMonth: 14,
 			month:      1,
 			sequence:   1,
-			want:       "1401001",
+			want:       "14010001",
 			wantErr:    false,
 		},
 		{
@@ -37,7 +37,7 @@ func TestGenerateOrderID(t *testing.T) {
 			dayOfMonth: 7,
 			month:      2,
 			sequence:   999,
-			want:       "0702999",
+			want:       "07020999",
 			wantErr:    false,
 		},
 		{
@@ -45,7 +45,7 @@ func TestGenerateOrderID(t *testing.T) {
 			dayOfMonth: 31,
 			month:      12,
 			sequence:   500,
-			want:       "3112500",
+			want:       "31120500",
 			wantErr:    false,
 		},
 		{
@@ -53,7 +53,31 @@ func TestGenerateOrderID(t *testing.T) {
 			dayOfMonth: 15,
 			month:      6,
 			sequence:   123,
-			want:       "1506123",
+			want:       "15060123",
+			wantErr:    false,
+		},
+		{
+			name:       "February 7th Order 9999",
+			dayOfMonth: 7,
+			month:      2,
+			sequence:   9999,
+			want:       "07029999",
+			wantErr:    false,
+		},
+		{
+			name:       "March 1st Order 1000",
+			dayOfMonth: 1,
+			month:      3,
+			sequence:   1000,
+			want:       "01031000",
+			wantErr:    false,
+		},
+		{
+			name:       "April 15th Order 5000",
+			dayOfMonth: 15,
+			month:      4,
+			sequence:   5000,
+			want:       "15045000",
 			wantErr:    false,
 		},
 		{
@@ -105,10 +129,10 @@ func TestGenerateOrderID(t *testing.T) {
 			wantErr:    true,
 		},
 		{
-			name:       "Invalid sequence 1000",
+			name:       "Invalid sequence 10000",
 			dayOfMonth: 1,
 			month:      1,
-			sequence:   1000,
+			sequence:   10000,
 			want:       "",
 			wantErr:    true,
 		},
@@ -142,13 +166,13 @@ func TestGenerateOrderIDFromTime(t *testing.T) {
 
 	got, err := GenerateOrderIDFromTime(testTime, 1)
 	assert.NoError(t, err)
-	assert.Equal(t, "1401001", got)
+	assert.Equal(t, "14010001", got)
 
 	// Test with different date: December 25
 	testTime2 := time.Date(2026, time.December, 25, 10, 30, 0, 0, time.UTC)
-	got2, err := GenerateOrderIDFromTime(testTime2, 999)
+	got2, err := GenerateOrderIDFromTime(testTime2, 9999)
 	assert.NoError(t, err)
-	assert.Equal(t, "2512999", got2)
+	assert.Equal(t, "25129999", got2)
 }
 
 func TestGetDateKey(t *testing.T) {
@@ -196,43 +220,55 @@ func TestValidateOrderIDFormat(t *testing.T) {
 	}{
 		{
 			name:            "Valid ID January 14",
-			id:              "1401001",
+			id:              "14010001",
 			expectedDateKey: 1401,
 			want:            true,
 		},
 		{
 			name:            "Valid ID January 1",
-			id:              "0101001",
+			id:              "01010001",
 			expectedDateKey: 101,
 			want:            true,
 		},
 		{
 			name:            "Valid ID December 31",
-			id:              "3112999",
+			id:              "31129999",
 			expectedDateKey: 3112,
 			want:            true,
 		},
 		{
 			name:            "Valid ID February 7",
-			id:              "0702500",
+			id:              "07020500",
 			expectedDateKey: 702,
 			want:            true,
 		},
 		{
+			name:            "Valid ID with 4-digit sequence 1000",
+			id:              "14011000",
+			expectedDateKey: 1401,
+			want:            true,
+		},
+		{
+			name:            "Valid ID with 4-digit sequence 5000",
+			id:              "14015000",
+			expectedDateKey: 1401,
+			want:            true,
+		},
+		{
 			name:            "Wrong expected date key",
-			id:              "1401001",
+			id:              "14010001",
 			expectedDateKey: 1501,
 			want:            false,
 		},
 		{
-			name:            "Too short",
-			id:              "140100",
+			name:            "Too short (7 chars)",
+			id:              "1401001",
 			expectedDateKey: 1401,
 			want:            false,
 		},
 		{
-			name:            "Too long",
-			id:              "14010001",
+			name:            "Too long (9 chars)",
+			id:              "140100001",
 			expectedDateKey: 1401,
 			want:            false,
 		},
@@ -244,37 +280,37 @@ func TestValidateOrderIDFormat(t *testing.T) {
 		},
 		{
 			name:            "Invalid characters",
-			id:              "14a1001",
+			id:              "14a10001",
 			expectedDateKey: 1401,
 			want:            false,
 		},
 		{
-			name:            "Sequence 000 invalid",
-			id:              "1401000",
+			name:            "Sequence 0000 invalid",
+			id:              "14010000",
 			expectedDateKey: 1401,
 			want:            false,
 		},
 		{
 			name:            "Invalid day 00",
-			id:              "0001001",
+			id:              "00010001",
 			expectedDateKey: 1,
 			want:            false,
 		},
 		{
 			name:            "Invalid day 32",
-			id:              "3201001",
+			id:              "32010001",
 			expectedDateKey: 3201,
 			want:            false,
 		},
 		{
 			name:            "Invalid month 00",
-			id:              "0100001",
+			id:              "01000001",
 			expectedDateKey: 100,
 			want:            false,
 		},
 		{
 			name:            "Invalid month 13",
-			id:              "0113001",
+			id:              "01130001",
 			expectedDateKey: 113,
 			want:            false,
 		},
@@ -298,48 +334,64 @@ func TestParseOrderID(t *testing.T) {
 		wantErr      bool
 	}{
 		{
-			name:         "Parse 1401001",
-			id:           "1401001",
+			name:         "Parse 14010001",
+			id:           "14010001",
 			wantDay:      14,
 			wantMonth:    1,
 			wantSequence: 1,
 			wantErr:      false,
 		},
 		{
-			name:         "Parse 0101001",
-			id:           "0101001",
+			name:         "Parse 01010001",
+			id:           "01010001",
 			wantDay:      1,
 			wantMonth:    1,
 			wantSequence: 1,
 			wantErr:      false,
 		},
 		{
-			name:         "Parse 3112999",
-			id:           "3112999",
+			name:         "Parse 31129999",
+			id:           "31129999",
 			wantDay:      31,
 			wantMonth:    12,
-			wantSequence: 999,
+			wantSequence: 9999,
 			wantErr:      false,
 		},
 		{
-			name:         "Parse 0702500",
-			id:           "0702500",
+			name:         "Parse 07020500",
+			id:           "07020500",
 			wantDay:      7,
 			wantMonth:    2,
 			wantSequence: 500,
 			wantErr:      false,
 		},
 		{
-			name:         "Too short",
-			id:           "140100",
+			name:         "Parse 14011000 (4-digit sequence)",
+			id:           "14011000",
+			wantDay:      14,
+			wantMonth:    1,
+			wantSequence: 1000,
+			wantErr:      false,
+		},
+		{
+			name:         "Parse 14015000 (4-digit sequence)",
+			id:           "14015000",
+			wantDay:      14,
+			wantMonth:    1,
+			wantSequence: 5000,
+			wantErr:      false,
+		},
+		{
+			name:         "Too short (7 chars)",
+			id:           "1401001",
 			wantDay:      0,
 			wantMonth:    0,
 			wantSequence: 0,
 			wantErr:      true,
 		},
 		{
-			name:         "Too long",
-			id:           "14010001",
+			name:         "Too long (9 chars)",
+			id:           "140100001",
 			wantDay:      0,
 			wantMonth:    0,
 			wantSequence: 0,
@@ -355,7 +407,7 @@ func TestParseOrderID(t *testing.T) {
 		},
 		{
 			name:         "Invalid day characters",
-			id:           "ab01001",
+			id:           "ab010001",
 			wantDay:      0,
 			wantMonth:    0,
 			wantSequence: 0,
@@ -363,7 +415,7 @@ func TestParseOrderID(t *testing.T) {
 		},
 		{
 			name:         "Invalid month characters",
-			id:           "14ab001",
+			id:           "14ab0001",
 			wantDay:      0,
 			wantMonth:    0,
 			wantSequence: 0,
@@ -371,7 +423,7 @@ func TestParseOrderID(t *testing.T) {
 		},
 		{
 			name:         "Invalid sequence characters",
-			id:           "1401abc",
+			id:           "1401abcd",
 			wantDay:      0,
 			wantMonth:    0,
 			wantSequence: 0,
@@ -379,7 +431,7 @@ func TestParseOrderID(t *testing.T) {
 		},
 		{
 			name:         "Day out of range (0)",
-			id:           "0001001",
+			id:           "00010001",
 			wantDay:      0,
 			wantMonth:    0,
 			wantSequence: 0,
@@ -387,7 +439,7 @@ func TestParseOrderID(t *testing.T) {
 		},
 		{
 			name:         "Day out of range (32)",
-			id:           "3201001",
+			id:           "32010001",
 			wantDay:      0,
 			wantMonth:    0,
 			wantSequence: 0,
@@ -395,7 +447,7 @@ func TestParseOrderID(t *testing.T) {
 		},
 		{
 			name:         "Month out of range (0)",
-			id:           "0100001",
+			id:           "01000001",
 			wantDay:      0,
 			wantMonth:    0,
 			wantSequence: 0,
@@ -403,7 +455,7 @@ func TestParseOrderID(t *testing.T) {
 		},
 		{
 			name:         "Month out of range (13)",
-			id:           "0113001",
+			id:           "01130001",
 			wantDay:      0,
 			wantMonth:    0,
 			wantSequence: 0,
@@ -434,38 +486,38 @@ func TestGetDateKeyFromOrderID(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Valid ID 1401001",
-			id:      "1401001",
+			name:    "Valid ID 14010001",
+			id:      "14010001",
 			want:    1401,
 			wantErr: false,
 		},
 		{
-			name:    "Valid ID 0101001",
-			id:      "0101001",
+			name:    "Valid ID 01010001",
+			id:      "01010001",
 			want:    101,
 			wantErr: false,
 		},
 		{
-			name:    "Valid ID 3112999",
-			id:      "3112999",
+			name:    "Valid ID 31129999",
+			id:      "31129999",
 			want:    3112,
 			wantErr: false,
 		},
 		{
-			name:    "Too short",
-			id:      "140100",
+			name:    "Too short (7 chars)",
+			id:      "1401001",
 			want:    0,
 			wantErr: true,
 		},
 		{
-			name:    "Too long",
-			id:      "14010001",
+			name:    "Too long (9 chars)",
+			id:      "140100001",
 			want:    0,
 			wantErr: true,
 		},
 		{
 			name:    "Invalid characters",
-			id:      "14ab001",
+			id:      "14ab0001",
 			want:    0,
 			wantErr: true,
 		},

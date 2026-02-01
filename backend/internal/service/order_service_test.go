@@ -143,8 +143,8 @@ func TestOrderService_CreateOrder(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, order)
-				// ID is generated server-side, verify format
-				assert.Len(t, order.ID, 7)
+				// ID is generated server-side, verify format (DDMMXXXX = 8 chars)
+				assert.Len(t, order.ID, 8)
 				assert.Equal(t, tt.req.CustomerName, order.CustomerName)
 				assert.Equal(t, models.OrderStatusPendingPayment, order.Status)
 			}
@@ -164,10 +164,10 @@ func TestOrderService_GetOrder(t *testing.T) {
 	}{
 		{
 			name:    "Order found",
-			orderID: "1401001",
+			orderID: "14010001",
 			setupMock: func(repo *mocks.MockOrderRepository) {
-				repo.On("GetByID", mock.Anything, "1401001").Return(&models.Order{
-					ID:           "1401001",
+				repo.On("GetByID", mock.Anything, "14010001").Return(&models.Order{
+					ID:           "14010001",
 					CustomerName: "John Doe",
 					Status:       models.OrderStatusPendingPayment,
 				}, nil)
@@ -176,9 +176,9 @@ func TestOrderService_GetOrder(t *testing.T) {
 		},
 		{
 			name:    "Order not found",
-			orderID: "9999999",
+			orderID: "99999999",
 			setupMock: func(repo *mocks.MockOrderRepository) {
-				repo.On("GetByID", mock.Anything, "9999999").Return(nil, errors.New("order not found"))
+				repo.On("GetByID", mock.Anything, "99999999").Return(nil, errors.New("order not found"))
 			},
 			wantErr: true,
 		},
@@ -219,18 +219,18 @@ func TestOrderService_VerifyPayment(t *testing.T) {
 	}{
 		{
 			name:    "Successful payment verification",
-			orderID: "1401001",
+			orderID: "14010001",
 			setupMock: func(repo *mocks.MockOrderRepository) {
-				repo.On("GetByID", mock.Anything, "1401001").Return(&models.Order{
-					ID:      "1401001",
+				repo.On("GetByID", mock.Anything, "14010001").Return(&models.Order{
+					ID:      "14010001",
 					DateKey: 1401,
 					Status:  models.OrderStatusPendingPayment,
 				}, nil).Once()
 				repo.On("GetNextQueueNumber", mock.Anything, 1401).Return(1, nil)
-				repo.On("VerifyPayment", mock.Anything, "1401001", 1, mock.Anything).Return(nil)
+				repo.On("VerifyPayment", mock.Anything, "14010001", 1, mock.Anything).Return(nil)
 				queueNum := 1
-				repo.On("GetByID", mock.Anything, "1401001").Return(&models.Order{
-					ID:          "1401001",
+				repo.On("GetByID", mock.Anything, "14010001").Return(&models.Order{
+					ID:          "14010001",
 					DateKey:     1401,
 					Status:      models.OrderStatusPaid,
 					QueueNumber: &queueNum,
@@ -240,10 +240,10 @@ func TestOrderService_VerifyPayment(t *testing.T) {
 		},
 		{
 			name:    "Order not in pending payment status",
-			orderID: "1401001",
+			orderID: "14010001",
 			setupMock: func(repo *mocks.MockOrderRepository) {
-				repo.On("GetByID", mock.Anything, "1401001").Return(&models.Order{
-					ID:      "1401001",
+				repo.On("GetByID", mock.Anything, "14010001").Return(&models.Order{
+					ID:      "14010001",
 					DateKey: 1401,
 					Status:  models.OrderStatusPaid,
 				}, nil)
@@ -253,9 +253,9 @@ func TestOrderService_VerifyPayment(t *testing.T) {
 		},
 		{
 			name:    "Order not found",
-			orderID: "9999999",
+			orderID: "99999999",
 			setupMock: func(repo *mocks.MockOrderRepository) {
-				repo.On("GetByID", mock.Anything, "9999999").Return(nil, errors.New("order not found"))
+				repo.On("GetByID", mock.Anything, "99999999").Return(nil, errors.New("order not found"))
 			},
 			wantErr: true,
 			errMsg:  "order not found",
@@ -298,18 +298,18 @@ func TestOrderService_CompleteOrder(t *testing.T) {
 	}{
 		{
 			name:    "Successful order completion",
-			orderID: "1401001",
+			orderID: "14010001",
 			setupMock: func(repo *mocks.MockOrderRepository) {
 				queueNum := 1
-				repo.On("GetByID", mock.Anything, "1401001").Return(&models.Order{
-					ID:          "1401001",
+				repo.On("GetByID", mock.Anything, "14010001").Return(&models.Order{
+					ID:          "14010001",
 					Status:      models.OrderStatusPaid,
 					QueueNumber: &queueNum,
 				}, nil).Once()
-				repo.On("CompleteOrder", mock.Anything, "1401001").Return(nil)
+				repo.On("CompleteOrder", mock.Anything, "14010001").Return(nil)
 				completedAt := time.Now()
-				repo.On("GetByID", mock.Anything, "1401001").Return(&models.Order{
-					ID:          "1401001",
+				repo.On("GetByID", mock.Anything, "14010001").Return(&models.Order{
+					ID:          "14010001",
 					Status:      models.OrderStatusCompleted,
 					QueueNumber: &queueNum,
 					CompletedAt: &completedAt,
@@ -319,10 +319,10 @@ func TestOrderService_CompleteOrder(t *testing.T) {
 		},
 		{
 			name:    "Order not in paid status",
-			orderID: "1401001",
+			orderID: "14010001",
 			setupMock: func(repo *mocks.MockOrderRepository) {
-				repo.On("GetByID", mock.Anything, "1401001").Return(&models.Order{
-					ID:     "1401001",
+				repo.On("GetByID", mock.Anything, "14010001").Return(&models.Order{
+					ID:     "14010001",
 					Status: models.OrderStatusPendingPayment,
 				}, nil)
 			},
@@ -366,22 +366,22 @@ func TestOrderService_CancelOrder(t *testing.T) {
 	}{
 		{
 			name:    "Successful order cancellation",
-			orderID: "1401001",
+			orderID: "14010001",
 			setupMock: func(repo *mocks.MockOrderRepository) {
-				repo.On("GetByID", mock.Anything, "1401001").Return(&models.Order{
-					ID:     "1401001",
+				repo.On("GetByID", mock.Anything, "14010001").Return(&models.Order{
+					ID:     "14010001",
 					Status: models.OrderStatusPendingPayment,
 				}, nil)
-				repo.On("UpdateStatus", mock.Anything, "1401001", models.OrderStatusCancelled).Return(nil)
+				repo.On("UpdateStatus", mock.Anything, "14010001", models.OrderStatusCancelled).Return(nil)
 			},
 			wantErr: false,
 		},
 		{
 			name:    "Cannot cancel paid order",
-			orderID: "1401001",
+			orderID: "14010001",
 			setupMock: func(repo *mocks.MockOrderRepository) {
-				repo.On("GetByID", mock.Anything, "1401001").Return(&models.Order{
-					ID:     "1401001",
+				repo.On("GetByID", mock.Anything, "14010001").Return(&models.Order{
+					ID:     "14010001",
 					Status: models.OrderStatusPaid,
 				}, nil)
 			},
@@ -419,8 +419,8 @@ func TestOrderService_GetPendingPayment(t *testing.T) {
 	cache := utils.NewNoOpCache()
 
 	expectedOrders := []models.Order{
-		{ID: "1401001", Status: models.OrderStatusPendingPayment},
-		{ID: "1401002", Status: models.OrderStatusPendingPayment},
+		{ID: "14010001", Status: models.OrderStatusPendingPayment},
+		{ID: "14010002", Status: models.OrderStatusPendingPayment},
 	}
 
 	orderRepo.On("GetByStatus", mock.Anything, models.OrderStatusPendingPayment).Return(expectedOrders, nil)
@@ -440,8 +440,8 @@ func TestOrderService_GetQueue(t *testing.T) {
 
 	queueNum1, queueNum2 := 1, 2
 	expectedOrders := []models.Order{
-		{ID: "1401001", Status: models.OrderStatusPaid, QueueNumber: &queueNum1},
-		{ID: "1401002", Status: models.OrderStatusPaid, QueueNumber: &queueNum2},
+		{ID: "14010001", Status: models.OrderStatusPaid, QueueNumber: &queueNum1},
+		{ID: "14010002", Status: models.OrderStatusPaid, QueueNumber: &queueNum2},
 	}
 
 	orderRepo.On("GetByStatus", mock.Anything, models.OrderStatusPaid).Return(expectedOrders, nil)

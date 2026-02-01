@@ -6,20 +6,20 @@ import (
 	"time"
 )
 
-// GenerateOrderID creates an order ID in DDMMXXX format.
+// GenerateOrderID creates an order ID in DDMMXXXX format.
 //
 // Format explanation:
 // - First 2 digits: Day of month (01-31)
 // - Next 2 digits: Month (01-12)
-// - Last 3 digits: Sequential order number (001-999)
+// - Last 4 digits: Sequential order number (0001-9999)
 //
-// Example: "1401001" = January 14, Order 1
-//          "0702999" = February 7, Order 999
+// Example: "14010001" = January 14, Order 1
+//          "07029999" = February 7, Order 9999
 //
 // We use this format because:
 // 1. Staff can read and call out these numbers quickly
 // 2. Works for any date (not limited to 9-day event)
-// 3. Max capacity: 999 orders per day (sufficient for this booth)
+// 3. Max capacity: 9999 orders per day (sufficient for this booth)
 // 4. Easy to identify which date an order belongs to
 //
 // Thread-safety: This function is pure and can be called from multiple
@@ -32,11 +32,11 @@ func GenerateOrderID(dayOfMonth, month, sequence int) (string, error) {
 	if month < 1 || month > 12 {
 		return "", fmt.Errorf("month must be 1-12, got %d", month)
 	}
-	if sequence < 1 || sequence > 999 {
-		return "", fmt.Errorf("sequence must be 1-999, got %d", sequence)
+	if sequence < 1 || sequence > 9999 {
+		return "", fmt.Errorf("sequence must be 1-9999, got %d", sequence)
 	}
 
-	return fmt.Sprintf("%02d%02d%03d", dayOfMonth, month, sequence), nil
+	return fmt.Sprintf("%02d%02d%04d", dayOfMonth, month, sequence), nil
 }
 
 // GenerateOrderIDFromTime creates an order ID using current date
@@ -55,10 +55,10 @@ func GetCurrentDateKey() int {
 	return GetDateKey(time.Now())
 }
 
-// ValidateOrderIDFormat validates the order ID format (DDMMXXX)
+// ValidateOrderIDFormat validates the order ID format (DDMMXXXX)
 // expectedDateKey is DDMM format (e.g., 1401 for January 14)
 func ValidateOrderIDFormat(id string, expectedDateKey int) bool {
-	if len(id) != 7 {
+	if len(id) != 8 {
 		return false
 	}
 
@@ -80,9 +80,9 @@ func ValidateOrderIDFormat(id string, expectedDateKey int) bool {
 		return false
 	}
 
-	// Validate sequence (XXX) - last 3 digits
-	seq, err := strconv.Atoi(id[4:7])
-	if err != nil || seq < 1 || seq > 999 {
+	// Validate sequence (XXXX) - last 4 digits
+	seq, err := strconv.Atoi(id[4:8])
+	if err != nil || seq < 1 || seq > 9999 {
 		return false
 	}
 
@@ -91,8 +91,8 @@ func ValidateOrderIDFormat(id string, expectedDateKey int) bool {
 
 // ParseOrderID extracts day, month, and sequence from order ID
 func ParseOrderID(id string) (dayOfMonth int, month int, sequence int, err error) {
-	if len(id) != 7 {
-		return 0, 0, 0, fmt.Errorf("invalid order ID length: expected 7, got %d", len(id))
+	if len(id) != 8 {
+		return 0, 0, 0, fmt.Errorf("invalid order ID length: expected 8, got %d", len(id))
 	}
 
 	dayOfMonth, err = strconv.Atoi(id[0:2])
@@ -111,9 +111,9 @@ func ParseOrderID(id string) (dayOfMonth int, month int, sequence int, err error
 		return 0, 0, 0, fmt.Errorf("month out of range: %d", month)
 	}
 
-	sequence, err = strconv.Atoi(id[4:7])
+	sequence, err = strconv.Atoi(id[4:8])
 	if err != nil {
-		return 0, 0, 0, fmt.Errorf("invalid sequence in order ID: %s", id[4:7])
+		return 0, 0, 0, fmt.Errorf("invalid sequence in order ID: %s", id[4:8])
 	}
 
 	return dayOfMonth, month, sequence, nil
@@ -121,7 +121,7 @@ func ParseOrderID(id string) (dayOfMonth int, month int, sequence int, err error
 
 // GetDateKeyFromOrderID extracts DDMM from order ID as integer
 func GetDateKeyFromOrderID(id string) (int, error) {
-	if len(id) != 7 {
+	if len(id) != 8 {
 		return 0, fmt.Errorf("invalid order ID length")
 	}
 
