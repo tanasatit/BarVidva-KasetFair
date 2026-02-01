@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -27,6 +28,7 @@ import {
   CreditCard,
   Settings,
   Filter,
+  CheckSquare,
 } from "lucide-react";
 import { orderApi, posApi, menuApi } from "@/services/api";
 import type { OrderStatus } from "@/types/api";
@@ -41,6 +43,8 @@ export function OrderHistory() {
   );
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
+  const [isBulkCompleting, setIsBulkCompleting] = useState(false);
 
   // Fetch categories for filter dropdown
   const { data: categories } = useQuery({
@@ -74,27 +78,44 @@ export function OrderHistory() {
     refetchInterval: 10000,
   });
 
-  // Combine all orders (ensure arrays)
+  // Check if date is today
+  const isToday = (dateStr?: string) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    const now = new Date();
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  };
+
+  // Combine all orders (ensure arrays) and filter to TODAY only
   const pendingArr = Array.isArray(pendingOrders) ? pendingOrders : [];
   const queueArr = Array.isArray(queueOrders) ? queueOrders : [];
   const completedArr = Array.isArray(completedOrders) ? completedOrders : [];
 
+  // Filter to today only
+  const todayPending = pendingArr.filter((o) => isToday(o.created_at));
+  const todayQueue = queueArr.filter((o) => isToday(o.created_at));
+  const todayCompleted = completedArr.filter((o) => isToday(o.created_at));
+
   const allOrders = [
-    ...pendingArr,
-    ...queueArr,
-    ...completedArr,
+    ...todayPending,
+    ...todayQueue,
+    ...todayCompleted,
   ].sort(
     (a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
-  // Filter orders based on active tab
+  // Filter orders based on active tab (already filtered to today)
   const filteredOrders =
     activeTab === "all"
       ? allOrders
       : activeTab === "paid"
-        ? queueArr
-        : completedArr;
+        ? todayQueue
+        : todayCompleted;
 
   // Mark order as complete mutation
   const completeOrderMutation = useMutation({
@@ -114,43 +135,90 @@ export function OrderHistory() {
     },
   });
 
+  // Bulk complete orders
+  const handleBulkComplete = async () => {
+    if (selectedOrderIds.size === 0) return;
+
+    setIsBulkCompleting(true);
+    try {
+      // Complete all selected orders in parallel
+      await Promise.all(
+        Array.from(selectedOrderIds).map((orderId) =>
+          posApi.completeOrder(orderId)
+        )
+      );
+      // Clear selection and refresh data
+      setSelectedOrderIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ["queue"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    } catch (error) {
+      console.error("Failed to complete orders:", error);
+    } finally {
+      setIsBulkCompleting(false);
+    }
+  };
+
   // Pagination calculations
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedOrders = filteredOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
 
-  // Reset to page 1 when switching tabs
+  // Toggle single order selection
+  const toggleOrderSelection = (orderId: string) => {
+    setSelectedOrderIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
+
+  // Toggle select all (only for PAID orders on current page)
+  const paginatedSelectableOrders = paginatedOrders.filter((o) => o.status === "PAID");
+  const allSelectableSelected = paginatedSelectableOrders.length > 0 &&
+    paginatedSelectableOrders.every((o) => selectedOrderIds.has(o.id));
+
+  const toggleSelectAll = () => {
+    if (allSelectableSelected) {
+      // Deselect all on current page
+      setSelectedOrderIds((prev) => {
+        const newSet = new Set(prev);
+        paginatedSelectableOrders.forEach((o) => newSet.delete(o.id));
+        return newSet;
+      });
+    } else {
+      // Select all PAID orders on current page
+      setSelectedOrderIds((prev) => {
+        const newSet = new Set(prev);
+        paginatedSelectableOrders.forEach((o) => newSet.add(o.id));
+        return newSet;
+      });
+    }
+  };
+
+  // Reset to page 1 and clear selections when switching tabs
   const handleTabChange = (value: string) => {
     setActiveTab(value as typeof activeTab);
     setCurrentPage(1);
+    setSelectedOrderIds(new Set());
   };
 
-  // Reset to page 1 when changing category
+  // Reset to page 1 and clear selections when changing category
   const handleCategoryChange = (value: string) => {
     setSelectedCategory(value);
     setCurrentPage(1);
+    setSelectedOrderIds(new Set());
   };
 
-  // Check if date is today
-  const isToday = (dateStr?: string) => {
-    if (!dateStr) return false;
-    const d = new Date(dateStr);
-    const now = new Date();
-    return (
-      d.getFullYear() === now.getFullYear() &&
-      d.getMonth() === now.getMonth() &&
-      d.getDate() === now.getDate()
-    );
-  };
-
-  // Calculate stats (TODAY only)
-  const todayOrders = allOrders.filter((o) => isToday(o.created_at));
-
+  // Calculate stats (already filtered to today)
   const stats = {
-    totalOrders: todayOrders.length,
-    paidOrders: todayOrders.filter((o) => o.status === "PAID").length,
-    completedOrders: todayOrders.filter((o) => o.status === "COMPLETED").length,
-    totalRevenue: todayOrders
+    totalOrders: allOrders.length,
+    paidOrders: todayQueue.length,
+    completedOrders: todayCompleted.length,
+    totalRevenue: allOrders
       .filter(
         (o) =>
           o.status !== "CANCELLED" &&
@@ -333,17 +401,40 @@ export function OrderHistory() {
           value={activeTab}
           onValueChange={handleTabChange}
         >
-          <TabsList className="mb-4">
-            <TabsTrigger value="all">
-              All ({allOrders.length})
-            </TabsTrigger>
-            <TabsTrigger value="paid">
-              Paid ({(queueOrders || []).length})
-            </TabsTrigger>
-            <TabsTrigger value="completed">
-              Completed ({(completedOrders || []).length})
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between mb-4">
+            <TabsList>
+              <TabsTrigger value="all">
+                All ({allOrders.length})
+              </TabsTrigger>
+              <TabsTrigger value="paid">
+                Paid ({todayQueue.length})
+              </TabsTrigger>
+              <TabsTrigger value="completed">
+                Completed ({todayCompleted.length})
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Bulk Complete Button */}
+            {selectedOrderIds.size > 0 && (
+              <Button
+                onClick={handleBulkComplete}
+                disabled={isBulkCompleting}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isBulkCompleting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                )}
+                Complete Selected ({selectedOrderIds.size})
+              </Button>
+            )}
+          </div>
+
+          {/* Today Only Notice */}
+          <div className="mb-4 text-sm text-muted-foreground">
+            Showing orders from today only. Data resets at midnight.
+          </div>
 
           <TabsContent value={activeTab}>
             <Card>
@@ -361,6 +452,15 @@ export function OrderHistory() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-[50px]">
+                            {paginatedSelectableOrders.length > 0 && (
+                              <Checkbox
+                                checked={allSelectableSelected}
+                                onCheckedChange={toggleSelectAll}
+                                aria-label="Select all"
+                              />
+                            )}
+                          </TableHead>
                           <TableHead>Order ID</TableHead>
                           <TableHead>Customer</TableHead>
                           <TableHead>Items</TableHead>
@@ -373,6 +473,15 @@ export function OrderHistory() {
                       <TableBody>
                         {paginatedOrders.map((order) => (
                           <TableRow key={order.id}>
+                            <TableCell>
+                              {order.status === "PAID" && (
+                                <Checkbox
+                                  checked={selectedOrderIds.has(order.id)}
+                                  onCheckedChange={() => toggleOrderSelection(order.id)}
+                                  aria-label={`Select order ${order.id}`}
+                                />
+                              )}
+                            </TableCell>
                             <TableCell className="font-mono font-medium">
                               {order.id}
                             </TableCell>
