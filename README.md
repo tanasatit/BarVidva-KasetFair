@@ -1,6 +1,6 @@
-# Bar vidva - Kaset Fair 2026 Food Ordering System
+# Bar vidva - Kaset Fair Food Ordering System
 
-A food ordering and queue management system for the Bar vidva booth at Kaset Fair 2026. Built with Go + Fiber backend, designed for offline-first operation.
+A food ordering system for the Bar Vidva booth at Kaset Fair 2026. Built with Go + Fiber backend.
 
 ## Quick Start
 
